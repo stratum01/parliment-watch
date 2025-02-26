@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - OPENPARLIAMENT_API_KEY=${OPENPARLIAMENT_API_KEY}
+    volumes:
+      - ./frontend:/app/frontend
+      - ./backend:/app/backend
+      - /app/frontend/node_modules
+      - /app/backend/node_modules
+    command: npm run dev
