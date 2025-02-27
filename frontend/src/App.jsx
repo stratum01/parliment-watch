@@ -45,9 +45,9 @@ const App = () => {
             <div className="md:w-1/3">
               <h3 className="font-semibold mb-3">Connect</h3>
               <ul className="space-y-2 text-sm">
-                <li><a href="#twitter" className="text-gray-600 hover:text-gray-900">Twitter</a></li>
-                <li><a href="#github" className="text-gray-600 hover:text-gray-900">GitHub</a></li>
-                <li><a href="#email" className="text-gray-600 hover:text-gray-900">Contact Us</a></li>
+                <li><a href="https://bsky.app/profile/drmcchamburgers.bsky.social" className="text-gray-600 hover:text-gray-900">Bluesky</a></li>
+                <li><a href="https://github.com/stratum01" className="text-gray-600 hover:text-gray-900">GitHub</a></li>
+                <li><a href="mailto:jrfchambers@gmail.com" className="text-gray-600 hover:text-gray-900">Email</a></li>
               </ul>
             </div>
           </div>
