@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getVotes } from '@lib/api';
+import { getVotes } from '../lib/api';
 
 export const useVotes = (params = {}) => {
   const [votes, setVotes] = useState([]);

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
-import SearchControls from '@/components/shared/SearchControls';
-import VoteCard from './VoteCard';
-import WordCloud from './WordCloud';
-import { BillsList, BillStatusOverview } from '@/components/bills';
-import { MemberProfile, VotingHistory, MemberSearch } from '@/components/members';
-import { useVotes } from '@/hooks/useVotes';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
+import SearchControls from '../../components/shared/SearchControls';
+import VoteCard from '../../components/dashboard/VoteCard'; // Full path to VoteCard
+import WordCloud from '../../components/dashboard/WordCloud';
+import { BillsList, BillStatusOverview } from '../../components/bills';
+import { MemberProfile, VotingHistory, MemberSearch } from '../../components/members';
+import { useVotes } from '../../hooks/useVotes';
 import { Calendar, Filter } from 'lucide-react';
 
 const ParliamentDashboard = () => {

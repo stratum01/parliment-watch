@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getMembers, getMemberById, getMemberVotes } from '@/lib/api';
+import { getMembers, getMemberById, getMemberVotes } from '../lib/api';
 
 export const useMembers = (params = {}) => {
   const [members, setMembers] = useState([]);

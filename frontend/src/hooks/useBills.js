@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getBills } from '@/lib/api';
+import { getBills, getBillById } from '../lib/api';
 
 export const useBills = (params = {}) => {
   const [bills, setBills] = useState([]);
