@@ -1,63 +1,77 @@
-import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { useMemberVotes } from '@/hooks/useMembers';
+import React, { useState } from 'react';
 
-const VoteHistoryItem = ({ vote }) => (
-  <div className="p-4 hover:bg-gray-50">
-    <div className="flex justify-between items-start mb-2">
-      <div>
-        <h3 className="font-medium">{vote.bill || 'Motion'}</h3>
-        <p className="text-sm text-gray-600">{vote.description}</p>
+const VotingHistory = ({ votes }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  
+  if (!votes || votes.length === 0) {
+    return (
+      <div className="bg-white border rounded-lg shadow-sm p-6 text-center">
+        <p className="text-gray-600">No voting history available for this member.</p>
       </div>
-      <div className="flex items-center space-x-2">
-        <span className={`px-2 py-1 text-sm rounded ${
-          vote.vote === 'Yea' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-          {vote.vote}
-        </span>
-        <span className={`px-2 py-1 text-sm rounded ${
-          vote.result === 'Passed' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-        }`}>
-          {vote.result}
-        </span>
-      </div>
-    </div>
-    <div className="text-sm text-gray-600">
-      {vote.date}
-    </div>
-  </div>
-);
+    );
+  }
 
-const VotingHistory = ({ memberId }) => {
-  const { votes, loading, error } = useMemberVotes(memberId);
-  const [currentPage, setCurrentPage] = React.useState(1);
-  const itemsPerPage = 4;
-
-  if (loading) return <div>Loading voting history...</div>;
-  if (error) return <div>Error loading voting history: {error}</div>;
-
+  // Calculate pagination
   const totalPages = Math.ceil(votes.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const displayedVotes = votes.slice(startIndex, startIndex + itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = votes.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Handle pagination
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
 
   return (
-    <Card>
-      <CardHeader className="border-b">
-        <CardTitle>Recent Voting Record</CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="divide-y">
-          {displayedVotes.map((vote, index) => (
-            <VoteHistoryItem key={index} vote={vote} />
-          ))}
-        </div>
-        
-        {/* Pagination */}
+    <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+      <div className="p-4 border-b">
+        <h2 className="text-lg font-semibold">Voting History</h2>
+      </div>
+      
+      <div className="divide-y">
+        {currentItems.map((vote, index) => (
+          <div key={index} className="p-4 hover:bg-gray-50">
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <h3 className="font-medium">{vote.bill || 'Motion'}</h3>
+                <p className="text-sm text-gray-600">{vote.description}</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className={`px-2 py-1 text-xs rounded-full ${
+                  vote.vote === 'Yea' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {vote.vote}
+                </span>
+                <span className={`px-2 py-1 text-xs rounded-full ${
+                  vote.result === 'Passed' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {vote.result}
+                </span>
+              </div>
+            </div>
+            <div className="text-sm text-gray-600">
+              {vote.date}
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {/* Pagination */}
+      {totalPages > 1 && (
         <div className="flex items-center justify-between border-t p-4">
           <button 
             className="px-3 py-1 border rounded text-sm hover:bg-gray-50 disabled:opacity-50"
             disabled={currentPage === 1}
-            onClick={() => setCurrentPage(prev => prev - 1)}
+            onClick={handlePreviousPage}
           >
             Previous
           </button>
@@ -65,12 +79,14 @@ const VotingHistory = ({ memberId }) => {
           <button 
             className="px-3 py-1 border rounded text-sm hover:bg-gray-50 disabled:opacity-50"
             disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(prev => prev + 1)}
+            onClick={handleNextPage}
           >
             Next
           </button>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 };
+
+export default VotingHistory;
