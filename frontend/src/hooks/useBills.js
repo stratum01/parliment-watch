@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getBills } from '@lib/api';
+import { getBills } from '@/lib/api';
 
 export const useBills = (params = {}) => {
   const [bills, setBills] = useState([]);
@@ -24,4 +24,34 @@ export const useBills = (params = {}) => {
   }, [params]);
 
   return { bills, loading, error };
+};
+
+export const useBillById = (id) => {
+  const [bill, setBill] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchBill = async () => {
+      try {
+        setLoading(true);
+        const data = await getBillById(id);
+        setBill(data);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBill();
+  }, [id]);
+
+  return { bill, loading, error };
 };
