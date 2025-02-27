@@ -1,5 +1,5 @@
 import React from 'react';
-import ParliamentDashboard from '@/components/dashboard/ParliamentDashboard';
+import ParliamentDashboard from './components/dashboard/ParliamentDashboard';
 
 const App = () => {
   return (
@@ -59,3 +59,5 @@ const App = () => {
     </div>
   );
 };
+
+export default App;

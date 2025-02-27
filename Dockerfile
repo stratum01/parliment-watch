@@ -2,19 +2,19 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files for workspace setup
 COPY package*.json ./
 COPY frontend/package*.json ./frontend/
 
 # Install dependencies
 RUN npm install
-RUN cd frontend && npm install
 
-# Copy source code
+# Copy source files
 COPY . .
 
 # Build the React app
-RUN cd frontend && npm run build
+WORKDIR /app/frontend
+RUN npm run build
 
 # Use Nginx for production
 FROM nginx:alpine
