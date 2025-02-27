@@ -2,24 +2,30 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Copy package files for workspace setup
+# Copy package files
 COPY package*.json ./
 COPY frontend/package*.json ./frontend/
 
 # Install dependencies
 RUN npm install
+WORKDIR /app/frontend
+RUN npm install
 
 # Copy source files
+WORKDIR /app
 COPY . .
 
-# Build the React app
+# Add PostCSS config if it doesn't exist
+RUN [ -f "./frontend/postcss.config.js" ] || echo 'export default { plugins: { tailwindcss: {}, autoprefixer: {}, }, }' > ./frontend/postcss.config.js
+
+# Build the app with Tailwind fully processed
 WORKDIR /app/frontend
 RUN npm run build
 
 # Use Nginx for production
 FROM nginx:alpine
 
-# Copy the built app from builder stage
+# Copy the built app from the builder stage
 COPY --from=builder /app/frontend/dist /usr/share/nginx/html
 
 # Ensure health check page exists
