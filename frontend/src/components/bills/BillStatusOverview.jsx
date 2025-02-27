@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const BillStatusOverview = () => {
   // Mock bills data directly included
@@ -151,21 +151,12 @@ const BillStatusOverview = () => {
                 dataKey="count" 
                 name="Bills" 
                 isAnimationActive={false}
+                fill="#3b82f6"
               >
                 {statusData.map((entry, index) => (
-                  <rect 
-                    key={`rect-${index}`}
-                    fill={getStatusColor(entry.status)}
-                    x={0}
-                    y={0}
-                    width={0}
-                    height={0}
-                    rx={4} 
-                    ry={4}
-                  />
+                  <Cell key={`cell-${index}`} fill={getStatusColor(entry.status)} />
                 ))}
-              </Bar>
-            </BarChart>
+              </Bar>            </BarChart>
           </ResponsiveContainer>
         </div>
         
