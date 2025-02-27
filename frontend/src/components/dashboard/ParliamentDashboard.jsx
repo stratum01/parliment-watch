@@ -6,11 +6,88 @@ import { BillsList, BillStatusOverview } from '../bills';
 import { MemberProfile, MemberSearch, VotingHistory } from '../members';
 import { getMemberVotingHistory } from '../../lib/memberVotesData';
 
+// Hard-coded mock data for members to avoid dependency on hooks
+const mockMembers = [
+  {
+    id: "m1",
+    name: "Marco Mendicino",
+    party: "Liberal",
+    constituency: "Eglinton—Lawrence",
+    province: "ON",
+    email: "marco.mendicino@parl.gc.ca",
+    phone: "613-992-6361",
+    photo_url: "/api/placeholder/400/400",
+    roles: ["Minister of Public Safety"],
+    office: {
+      address: "511 Lawrence Avenue West, Toronto, Ontario, M6A 1A3",
+      phone: "416-781-5583"
+    }
+  },
+  {
+    id: "m2",
+    name: "Pierre Poilievre",
+    party: "Conservative",
+    constituency: "Carleton",
+    province: "ON",
+    email: "pierre.poilievre@parl.gc.ca",
+    phone: "613-992-2772",
+    photo_url: "/api/placeholder/400/400",
+    roles: ["Leader of the Official Opposition"],
+    office: {
+      address: "1139 Mill Street, Manotick, Ontario, K4M 1A5",
+      phone: "613-692-3331"
+    }
+  },
+  {
+    id: "m3",
+    name: "Jagmeet Singh",
+    party: "NDP",
+    constituency: "Burnaby South",
+    province: "BC",
+    email: "jagmeet.singh@parl.gc.ca",
+    phone: "613-995-7224",
+    photo_url: "/api/placeholder/400/400",
+    roles: ["Leader of the New Democratic Party"],
+    office: {
+      address: "4940 Kingsway, Burnaby, British Columbia, V5H 2E2",
+      phone: "604-291-8863"
+    }
+  }
+];
 
 const SimpleTabs = ({ children, defaultTab }) => {
   const [activeTab, setActiveTab] = useState(defaultTab);
   // Make sure selectedMember is scoped to this component, not referenced from parent
   const [selectedMember, setSelectedMember] = useState(null);
+  
+  // Define a simple MemberSearch component inline
+  const SimpleMemberSearch = ({ onMemberSelect }) => {
+    return (
+      <div className="bg-white border rounded-lg p-4">
+        <h2 className="text-lg font-medium mb-4">Members of Parliament</h2>
+        <p className="text-gray-500 mb-6">Select a member to view their profile and voting history.</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {mockMembers.map(member => (
+            <div
+              key={member.id}
+              className="border rounded-lg p-4 hover:border-blue-300 cursor-pointer"
+              onClick={() => onMemberSelect(member)}
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                <div>
+                  <h3 className="font-medium">{member.name}</h3>
+                  <p className="text-sm text-gray-500">{member.party}</p>
+                  <p className="text-sm text-gray-500">{member.constituency}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
   
   return (
     <div className="bg-white rounded-lg shadow p-4">
@@ -68,7 +145,7 @@ const SimpleTabs = ({ children, defaultTab }) => {
                 </div>
               </div>
             ) : (
-              <MemberSearch onMemberSelect={setSelectedMember} />
+              <SimpleMemberSearch onMemberSelect={setSelectedMember} />
             )}
           </div>
         )}
