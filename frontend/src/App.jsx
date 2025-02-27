@@ -51,8 +51,9 @@ const App = () => {
               </ul>
             </div>
           </div>
-          <div className="mt-8 pt-4 border-t text-center text-sm text-gray-600">
+          <div className="mt-8 pt-8 border-t text-center text-sm text-gray-600">
             <p>&copy; {new Date().getFullYear()} Parliament Watch. All rights reserved.</p>
+            <p className="mt-2">Powered by the awesome API data provided by <a href="https://openparliament.ca/" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">OpenParliament.ca</a></p>
           </div>
         </div>
       </footer>

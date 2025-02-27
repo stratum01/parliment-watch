@@ -1,6 +1,4 @@
 import React from 'react';
-import { useMembers } from '@/hooks/useMembers';
-import SearchControls from '@/components/shared/SearchControls';
 
 const MemberSearch = ({ onMemberSelect }) => {
   const [searchTerm, setSearchTerm] = React.useState('');
