@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import SearchControls from '@/components/shared/SearchControls';
 import VoteCard from './VoteCard';
 import WordCloud from './WordCloud';
