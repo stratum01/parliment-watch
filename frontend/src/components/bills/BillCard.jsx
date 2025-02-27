@@ -1,10 +1,9 @@
 import React from 'react';
-import { Calendar, User, ExternalLink, FileText } from 'lucide-react';
 
 const BillCard = ({ bill }) => {
   if (!bill) return null;
   
-  const { number, name, introduced_date, status, sponsor, last_event, progress } = bill;
+  const { number, name, introduced_date, status, sponsor, last_event, progress, session } = bill;
   
   // Format the date
   const formattedDate = new Date(introduced_date).toLocaleDateString('en-CA', {
@@ -32,38 +31,37 @@ const BillCard = ({ bill }) => {
   };
   
   return (
-    <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
-      <div className="p-4 border-b">
-        <div className="flex justify-between items-start mb-2">
+    <div className="bg-white border rounded-lg shadow-sm overflow-hidden mb-4">
+      <div className="p-3 border-b">
+        <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold">
             Bill {number}
             <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${getStatusColor()}`}>
               {status}
             </span>
           </h3>
-          <div className="flex items-center text-sm text-gray-500">
-            <Calendar className="h-4 w-4 mr-1" />
-            {formattedDate}
-          </div>
+          <div className="text-sm text-gray-500">{formattedDate}</div>
         </div>
-        <p className="text-gray-700">{name.en}</p>
+        <p className="text-base text-gray-700 mt-1">{name.en}</p>
       </div>
       
-      <div className="p-4">
-        <div className="flex items-center text-sm mb-4">
-          <User className="h-4 w-4 mr-2 text-gray-500" />
+      <div className="p-3">
+        <div className="flex items-center text-sm mb-3">
+          <svg className="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
           <span className="text-gray-700 font-medium">Sponsor:</span>
           <span className="ml-2">{sponsor}</span>
         </div>
         
-        <div className="mb-6">
+        <div className="mb-3">
           <div className="flex justify-between text-sm mb-1">
             <span className="font-medium">Progress</span>
             <span>{progress}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
+          <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
-              className="bg-blue-600 h-2.5 rounded-full" 
+              className="bg-blue-600 h-2 rounded-full" 
               style={{ width: `${progress}%` }}
             ></div>
           </div>
@@ -75,17 +73,19 @@ const BillCard = ({ bill }) => {
         </div>
       </div>
       
-      <div className="px-4 py-3 bg-gray-50 border-t">
+      <div className="px-3 py-2 bg-gray-50 border-t">
         <div className="flex justify-between items-center">
           <span className="text-sm text-gray-600">
-            Session: {bill.session}
+            Session: {session}
           </span>
           <a 
             href={`#/bills/${number}`}
             className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800"
           >
             <span className="mr-1">View Details</span>
-            <ExternalLink className="h-3.5 w-3.5" />
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
           </a>
         </div>
       </div>

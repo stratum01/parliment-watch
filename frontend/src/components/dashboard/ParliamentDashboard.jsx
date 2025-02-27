@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 // Import styling directly to ensure it's included
 import '../../index.css';
 import VoteCard from './VoteCard';
+import { BillsList, BillStatusOverview } from '../bills';
 
 const SimpleTabs = ({ children, defaultTab }) => {
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -37,9 +38,9 @@ const SimpleTabs = ({ children, defaultTab }) => {
         )}
         
         {activeTab === 'bills' && (
-          <div className="p-8 text-center">
-            <h3 className="text-lg font-medium">Bills Section</h3>
-            <p className="text-gray-600 mt-2">Bills tracking functionality coming soon.</p>
+          <div className="space-y-4">
+            <BillStatusOverview />
+            <BillsList />
           </div>
         )}
         

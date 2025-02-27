@@ -1,5 +1,5 @@
 import React from 'react';
-import { useBills } from '@/hooks/useBills';
+import { useBills } from '../../hooks/useBills';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const BillStatusOverview = () => {
@@ -35,32 +35,53 @@ const BillStatusOverview = () => {
     }
   };
 
+  const CustomBar = (props) => {
+    const { x, y, width, height, status } = props;
+    return (
+      <rect 
+        x={x} 
+        y={y} 
+        width={width} 
+        height={height} 
+        fill={getStatusColor(status)} 
+        rx={4} 
+        ry={4}
+      />
+    );
+  };
+
   // Get the data for the chart
   const statusData = getStatusCounts();
 
   return (
-    <div className="bg-white p-4 rounded-lg border shadow-sm">
+    <div className="bg-white p-4 rounded-lg border mb-6">
       <h2 className="text-lg font-semibold mb-4">Bill Status Overview</h2>
       
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="flex justify-center items-center h-40">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
         </div>
       ) : error ? (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
           <strong className="font-bold">Error: </strong>
           <span className="block sm:inline">{error}</span>
         </div>
       ) : (
         <div>
-          <div className="h-64">
+          <div className="h-60">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={statusData}
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                margin={{ top: 10, right: 30, left: 20, bottom: 40 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="status" />
+                <XAxis 
+                  dataKey="status" 
+                  angle={-45} 
+                  textAnchor="end"
+                  tick={{ fontSize: 12 }}
+                  height={60}
+                />
                 <YAxis />
                 <Tooltip 
                   formatter={(value, name) => [`${value} bills`, 'Count']}
@@ -69,16 +90,14 @@ const BillStatusOverview = () => {
                 <Bar 
                   dataKey="count" 
                   name="Bills" 
-                  fill="#3b82f6"
-                  radius={[4, 4, 0, 0]}
-                  // Use different colors for each status
-                  fill={(entry) => getStatusColor(entry.status)}
+                  shape={<CustomBar />}
+                  isAnimationActive={false}
                 />
               </BarChart>
             </ResponsiveContainer>
           </div>
           
-          <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-2">
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-2">
             {statusData.map(item => (
               <div key={item.status} className="flex items-center">
                 <div 
