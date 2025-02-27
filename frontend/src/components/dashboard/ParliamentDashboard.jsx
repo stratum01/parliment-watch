@@ -3,6 +3,9 @@ import React, { useState, useEffect } from 'react';
 import '../../index.css';
 import VoteCard from './VoteCard';
 import { BillsList, BillStatusOverview } from '../bills';
+import { MemberProfile, MemberSearch, VotingHistory } from '../members';
+import { getMemberVotingHistory } from '../../lib/memberVotesData';
+
 
 const SimpleTabs = ({ children, defaultTab }) => {
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -44,10 +47,27 @@ const SimpleTabs = ({ children, defaultTab }) => {
           </div>
         )}
         
-        {activeTab === 'members' && (
-          <div className="p-8 text-center">
-            <h3 className="text-lg font-medium">Members Section</h3>
-            <p className="text-gray-600 mt-2">MP profiles and voting records coming soon.</p>
+         {activeTab === 'members' && (
+          <div className="space-y-6">
+            {selectedMember ? (
+              <div>
+                <button
+                  onClick={() => setSelectedMember(null)}
+                  className="mb-4 inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Members
+                </button>
+                <div className="grid grid-cols-1 gap-6">
+                  <MemberProfile member={selectedMember} />
+                  <VotingHistory votes={getMemberVotingHistory(selectedMember.id)} />
+                </div>
+              </div>
+            ) : (
+              <MemberSearch onMemberSelect={setSelectedMember} />
+            )}
           </div>
         )}
       </div>
@@ -61,6 +81,7 @@ const ParliamentDashboard = () => {
   const [votes, setVotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedMember, setSelectedMember] = useState(null);
 
   // Directly fetch mock votes data
   useEffect(() => {
