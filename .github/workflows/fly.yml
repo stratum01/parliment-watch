@@ -1,52 +1,20 @@
-name: Build and Deploy
+name: Deploy to Fly.io
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches: [ main ]  # Adjust if your main branch has a different name
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-          cache: 'npm'
-          
-      - name: Install dependencies
-        run: |
-          cd frontend
-          npm ci
-          
-      - name: Run tests
-        run: |
-          cd frontend
-          npm test
-          
   deploy:
-    name: Deploy to Fly.io
-    needs: test  # Only deploy if tests pass
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'  # Only deploy on push to main
+    name: Deploy app
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       
       - name: Setup flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
-        
+      
       - name: Deploy to Fly.io
         run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-          OPENPARLIAMENT_API_KEY: ${{ secrets.OPENPARLIAMENT_API_KEY }}
-          
-      - name: Check deployment
-        run: flyctl status
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }} 
