@@ -23,26 +23,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false
       }
-    },
-    hmr: {
-      // Allow HMR to work on Fly.io domain
-      clientPort: 443,
-      path: 'hmr',
-      host: 'parliament-watch.fly.dev'
-    },
-    // Allow the Fly.io domain
-    allowedHosts: [
-      'parliament-watch.fly.dev',
-      '.fly.dev',
-      'localhost'
-    ]
+    }
   },
   build: {
     outDir: 'dist',
-    sourcemap: false
-  },
-  // Optimize memory usage
-  optimizeDeps: {
-    exclude: ['fsevents']
+    sourcemap: process.env.NODE_ENV === 'development',
+    emptyOutDir: true
   }
 });
