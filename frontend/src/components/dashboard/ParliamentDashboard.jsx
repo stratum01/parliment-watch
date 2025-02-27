@@ -9,6 +9,8 @@ import { getMemberVotingHistory } from '../../lib/memberVotesData';
 
 const SimpleTabs = ({ children, defaultTab }) => {
   const [activeTab, setActiveTab] = useState(defaultTab);
+  // Make sure selectedMember is scoped to this component, not referenced from parent
+  const [selectedMember, setSelectedMember] = useState(null);
   
   return (
     <div className="bg-white rounded-lg shadow p-4">
@@ -47,7 +49,7 @@ const SimpleTabs = ({ children, defaultTab }) => {
           </div>
         )}
         
-         {activeTab === 'members' && (
+        {activeTab === 'members' && (
           <div className="space-y-6">
             {selectedMember ? (
               <div>
@@ -81,7 +83,6 @@ const ParliamentDashboard = () => {
   const [votes, setVotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedMember, setSelectedMember] = useState(null);
 
   // Directly fetch mock votes data
   useEffect(() => {
