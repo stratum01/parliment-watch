@@ -49,4 +49,4 @@ const MemberSearch = ({ onMemberSelect }) => {
   );
 };
 
-export { MemberProfile, VotingHistory, MemberSearch };
+export default MemberSearch;
