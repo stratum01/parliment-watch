@@ -3,53 +3,6 @@ import React, { useState, useEffect } from 'react';
 import '../../index.css';
 import VoteCard from './VoteCard';
 
-// Simple inline components to avoid import issues
-const SimpleVoteCard = ({ vote }) => {
-  if (!vote) return null;
-  
-  const { number, date, description, result, yea_total, nay_total } = vote;
-  
-  const formattedDate = new Date(date).toLocaleDateString('en-CA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
-  
-  return (
-    <div className="bg-white border rounded-lg shadow-sm p-4 mb-4">
-      <div className="flex justify-between mb-2">
-        <h3 className="text-lg font-semibold">
-          Vote #{number}
-          <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-            result === 'Passed' 
-              ? 'bg-green-100 text-green-800' 
-              : 'bg-red-100 text-red-800'
-          }`}>
-            {result}
-          </span>
-        </h3>
-        <div className="text-sm text-gray-500">{formattedDate}</div>
-      </div>
-      <p className="text-gray-700">{description?.en || description}</p>
-      
-      <div className="flex mt-4 justify-between">
-        <div className="text-center">
-          <div className="text-lg font-bold text-green-600">{yea_total}</div>
-          <div className="text-sm text-gray-600">Yea</div>
-        </div>
-        <div className="text-center">
-          <div className="text-lg font-bold text-red-600">{nay_total}</div>
-          <div className="text-sm text-gray-600">Nay</div>
-        </div>
-        <div className="text-center">
-          <div className="text-lg font-bold">{yea_total + nay_total}</div>
-          <div className="text-sm text-gray-600">Total</div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const SimpleTabs = ({ children, defaultTab }) => {
   const [activeTab, setActiveTab] = useState(defaultTab);
   
@@ -231,7 +184,7 @@ const ParliamentDashboard = () => {
           </div>
         ) : (
           filteredVotes.map(vote => (
-            <SimpleVoteCard key={vote.id || vote.number} vote={vote} />
+            <VoteCard key={vote.id || vote.number} vote={vote} />
           ))
         )}
       </SimpleTabs>
@@ -240,7 +193,7 @@ const ParliamentDashboard = () => {
       <div className="mt-6">
         <div className="bg-white p-4 rounded-lg shadow">
           <h2 className="text-lg font-semibold mb-2">Trending Topics in Parliament</h2>
-          <div className="py-12 px-4">
+          <div className="py-6 px-4">
             <div className="flex flex-wrap justify-center items-center gap-2 text-center leading-none">
               {[
                 { text: "united states", size: "text-3xl", color: "text-blue-600" },
