@@ -1,24 +1,40 @@
 import React from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 const VoteCard = ({ vote }) => {
   if (!vote) return null;
 
   const { number, date, description, result, yea_total, nay_total, paired_total, bill_url } = vote;
   
+  // Prepare data for the pie chart
+  const data = [
+    { name: 'Yea', value: yea_total, color: '#10b981' }, // Green
+    { name: 'Nay', value: nay_total, color: '#ef4444' },  // Red
+  ];
+  
+  // Add paired votes if they exist
+  if (paired_total > 0) {
+    data.push({ name: 'Paired', value: paired_total, color: '#94a3b8' }); // Gray
+  }
+  
+  // Format the date
   const formattedDate = new Date(date).toLocaleDateString('en-CA', {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
   });
+
+  // Total votes
+  const totalVotes = yea_total + nay_total + (paired_total || 0);
   
-  const totalVotes = (yea_total || 0) + (nay_total || 0) + (paired_total || 0);
-  const yeaPercent = totalVotes ? Math.round(((yea_total || 0) / totalVotes) * 100) : 0;
-  const nayPercent = totalVotes ? Math.round(((nay_total || 0) / totalVotes) * 100) : 0;
+  // Calculate percentages
+  const yeaPercent = Math.round((yea_total / totalVotes) * 100);
+  const nayPercent = Math.round((nay_total / totalVotes) * 100);
 
   return (
-    <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
-      <div className="p-4 border-b">
-        <div className="flex justify-between items-start mb-2">
+    <div className="bg-white border rounded-lg shadow-sm overflow-hidden mb-4">
+      <div className="p-3 border-b">
+        <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold flex items-center">
             Vote #{number}
             <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
@@ -29,115 +45,67 @@ const VoteCard = ({ vote }) => {
               {result}
             </span>
           </h3>
-          <div className="text-sm text-gray-500">
-            {formattedDate}
-          </div>
+          <div className="text-sm text-gray-500">{formattedDate}</div>
         </div>
-        <p className="text-gray-700">{description?.en || description}</p>
+        <p className="text-base text-gray-700 mt-1">{description?.en || description}</p>
         {bill_url && (
           <a 
             href={`#${bill_url}`}
-            className="mt-2 text-sm text-blue-600 hover:text-blue-800 inline-flex items-center"
+            className="mt-1 text-sm text-blue-600 hover:text-blue-800 inline-flex items-center"
           >
             View Related Bill
           </a>
         )}
       </div>
       
-      <div className="p-4 bg-gray-50 md:flex">
-        <div className="w-full md:w-1/2 flex justify-center mb-4 md:mb-0">
-          <div className="relative h-32 w-32">
-            <svg viewBox="0 0 100 100" className="h-full w-full">
-              <circle
-                cx="50"
-                cy="50"
-                r="40"
-                fill="none"
-                stroke="#e5e7eb"
-                strokeWidth="15"
-              />
-              {/* Yea votes */}
-              <circle
-                cx="50"
-                cy="50"
-                r="40"
-                fill="none"
-                stroke="#10b981"
-                strokeWidth="15"
-                strokeDasharray={`${yeaPercent * 2.51} 251`}
-                strokeDashoffset="0"
-                transform="rotate(-90 50 50)"
-              />
-              {/* Nay votes */}
-              <circle
-                cx="50"
-                cy="50"
-                r="40"
-                fill="none"
-                stroke="#ef4444"
-                strokeWidth="15"
-                strokeDasharray={`${nayPercent * 2.51} 251`}
-                strokeDashoffset={`${-yeaPercent * 2.51}`}
-                transform="rotate(-90 50 50)"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-lg font-bold">{totalVotes}</span>
-            </div>
+      <div className="p-3 bg-gray-50 flex items-center">
+        <div className="w-1/3 pr-2">
+          <div className="h-24">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={25}
+                  outerRadius={40}
+                  paddingAngle={2}
+                  dataKey="value"
+                  startAngle={90}
+                  endAngle={-270}
+                >
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value) => [`${value} votes`, '']}
+                  contentStyle={{ borderRadius: '6px' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </div>
         
-        <div className="w-full md:w-1/2 flex flex-col justify-center">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                <span className="text-sm font-medium">Yea</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-bold">{yea_total || 0}</span>
-                <span className="text-sm text-gray-500">({yeaPercent}%)</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-                <span className="text-sm font-medium">Nay</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-bold">{nay_total || 0}</span>
-                <span className="text-sm text-gray-500">({nayPercent}%)</span>
-              </div>
-            </div>
-            
-            {(paired_total > 0) && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
-                  <span className="text-sm font-medium">Paired</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-bold">{paired_total}</span>
-                  <span className="text-sm text-gray-500">
-                    ({Math.round((paired_total / totalVotes) * 100)}%)
-                  </span>
-                </div>
-              </div>
-            )}
-            
-            <div className="pt-2 mt-2 border-t">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Total Votes</span>
-                <span className="text-sm font-bold">{totalVotes}</span>
-              </div>
-            </div>
+        <div className="w-2/3 grid grid-cols-3 gap-2">
+          <div className="text-center">
+            <div className="text-xl font-bold text-green-600">{yea_total}</div>
+            <div className="text-sm font-medium text-gray-600">Yea</div>
+            <div className="text-xs text-gray-500">({yeaPercent}%)</div>
+          </div>
+          
+          <div className="text-center">
+            <div className="text-xl font-bold text-red-600">{nay_total}</div>
+            <div className="text-sm font-medium text-gray-600">Nay</div>
+            <div className="text-xs text-gray-500">({nayPercent}%)</div>
+          </div>
+          
+          <div className="text-center">
+            <div className="text-xl font-bold text-gray-700">{totalVotes}</div>
+            <div className="text-sm font-medium text-gray-600">Total</div>
+            <div className="text-xs text-gray-500">&nbsp;</div>
           </div>
         </div>
-      </div>
-      
-      <div className="p-3 border-t bg-gray-50 text-xs text-gray-500 flex items-center">
-        <span>Voting data provided by OpenParliament.ca</span>
       </div>
     </div>
   );

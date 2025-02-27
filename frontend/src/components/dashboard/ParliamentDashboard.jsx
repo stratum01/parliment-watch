@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 // Import styling directly to ensure it's included
 import '../../index.css';
+import VoteCard from './VoteCard';
 
 // Simple inline components to avoid import issues
 const SimpleVoteCard = ({ vote }) => {
