@@ -1,14 +1,101 @@
 import React, { useState } from 'react';
 import BillCard from './BillCard';
-import { useBills } from '../../hooks/useBills';
 
 const BillsList = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const { bills, loading, error } = useBills();
+  const [loading, setLoading] = useState(false);
+  
+  // Mock data directly included
+  const mockBills = [
+    {
+      id: "b1",
+      number: "C-79",
+      name: {
+        en: "An Act for granting to His Majesty certain sums of money for the federal public administration",
+        fr: "Loi portant octroi à Sa Majesté de crédits pour l'administration publique fédérale"
+      },
+      introduced_date: "2024-12-01",
+      status: "Third Reading",
+      sponsor: "Hon. Chrystia Freeland",
+      last_event: "Passed third reading (2024-12-10)",
+      progress: 90,
+      session: "44-1"
+    },
+    {
+      id: "b2",
+      number: "C-45",
+      name: {
+        en: "Cannabis Regulation Amendment Act",
+        fr: "Loi modifiant la réglementation du cannabis"
+      },
+      introduced_date: "2024-11-15",
+      status: "Committee",
+      sponsor: "Hon. Mark Holland",
+      last_event: "Referred to committee (2024-12-01)",
+      progress: 60,
+      session: "44-1"
+    },
+    {
+      id: "b3",
+      number: "C-56",
+      name: {
+        en: "Affordable Housing and Public Transit Act",
+        fr: "Loi sur le logement abordable et le transport en commun"
+      },
+      introduced_date: "2024-11-01",
+      status: "Second Reading",
+      sponsor: "Hon. Sean Fraser",
+      last_event: "Debate at second reading (2024-11-20)",
+      progress: 40,
+      session: "44-1"
+    },
+    {
+      id: "b4",
+      number: "C-123",
+      name: {
+        en: "Economic Statement Implementation Act",
+        fr: "Loi d'exécution de l'énoncé économique"
+      },
+      introduced_date: "2024-10-20",
+      status: "Royal Assent",
+      sponsor: "Hon. Chrystia Freeland",
+      last_event: "Royal Assent received (2024-12-15)",
+      progress: 100,
+      session: "44-1"
+    },
+    {
+      id: "b5",
+      number: "C-32",
+      name: {
+        en: "Online Streaming Act",
+        fr: "Loi sur la diffusion continue en ligne"
+      },
+      introduced_date: "2024-10-15",
+      status: "First Reading",
+      sponsor: "Hon. Pablo Rodriguez",
+      last_event: "Introduction and first reading (2024-10-15)",
+      progress: 20,
+      session: "44-1"
+    },
+    {
+      id: "b6",
+      number: "C-18",
+      name: {
+        en: "Online News Act",
+        fr: "Loi sur les nouvelles en ligne"
+      },
+      introduced_date: "2024-09-22",
+      status: "Royal Assent",
+      sponsor: "Hon. Pablo Rodriguez",
+      last_event: "Royal Assent received (2024-11-07)",
+      progress: 100,
+      session: "44-1"
+    }
+  ];
 
   // Filter bills based on status and search query
-  const filteredBills = bills.filter(bill => {
+  const filteredBills = mockBills.filter(bill => {
     const matchesStatus = !statusFilter || bill.status === statusFilter;
     const matchesSearch = !searchQuery || 
       bill.name.en.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -18,7 +105,7 @@ const BillsList = () => {
   });
 
   // Get unique statuses for the filter dropdown
-  const statuses = [...new Set(bills.map(bill => bill.status))];
+  const statuses = [...new Set(mockBills.map(bill => bill.status))];
 
   return (
     <div className="space-y-4">
@@ -86,11 +173,6 @@ const BillsList = () => {
       {loading ? (
         <div className="flex justify-center items-center h-40">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
-        </div>
-      ) : error ? (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
-          <strong className="font-bold">Error: </strong>
-          <span className="block sm:inline">{error}</span>
         </div>
       ) : filteredBills.length === 0 ? (
         <div className="text-center py-10 bg-white rounded-lg border">
