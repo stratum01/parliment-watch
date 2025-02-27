@@ -1,26 +1,27 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 const WordCloud = () => {
-  const words = [
-    { text: "united states", size: "text-5xl", color: "text-emerald-600", weight: "font-bold" },
-    { text: "international trade", size: "text-4xl", color: "text-purple-500", weight: "font-normal" },
-    { text: "softwood lumber", size: "text-4xl", color: "text-emerald-500", weight: "font-bold" },
-    { text: "economic statement", size: "text-3xl", color: "text-purple-600", weight: "font-normal" },
-    { text: "conservatives", size: "text-3xl", color: "text-emerald-500", weight: "font-normal" },
-    { text: "confidence vote", size: "text-2xl", color: "text-orange-500", weight: "font-bold" },
-    { text: "jobs", size: "text-2xl", color: "text-orange-600", weight: "font-bold" },
-    { text: "finance", size: "text-2xl", color: "text-amber-500", weight: "font-normal" },
-    { text: "industry", size: "text-xl", color: "text-green-600", weight: "font-normal" },
-    { text: "tariffs", size: "text-xl", color: "text-blue-500", weight: "font-normal" },
-    { text: "agreement", size: "text-xl", color: "text-red-500", weight: "font-normal" },
-    { text: "climate action", size: "text-lg", color: "text-emerald-500", weight: "font-normal" },
-    { text: "public safety", size: "text-lg", color: "text-orange-500", weight: "font-normal" },
-    { text: "housing", size: "text-lg", color: "text-purple-500", weight: "font-normal" },
-    { text: "immigration", size: "text-base", color: "text-amber-600", weight: "font-normal" },
-    { text: "healthcare", size: "text-base", color: "text-pink-500", weight: "font-normal" },
-    { text: "budget", size: "text-base", color: "text-gray-600", weight: "font-normal" },
-    { text: "infrastructure", size: "text-sm", color: "text-lime-600", weight: "font-normal" }
-  ];
+  // Use useMemo to generate the words with random rotations only once
+  const words = useMemo(() => [
+    { text: "united states", size: "text-5xl", color: "text-emerald-600", weight: "font-bold", rotate: Math.random() * 2 - 1 },
+    { text: "international trade", size: "text-4xl", color: "text-purple-500", weight: "font-normal", rotate: Math.random() * 2 - 1 },
+    { text: "softwood lumber", size: "text-4xl", color: "text-emerald-500", weight: "font-bold", rotate: Math.random() * 2 - 1 },
+    { text: "economic statement", size: "text-3xl", color: "text-purple-600", weight: "font-normal", rotate: Math.random() * 2 - 1 },
+    { text: "conservatives", size: "text-3xl", color: "text-emerald-500", weight: "font-normal", rotate: Math.random() * 2 - 1 },
+    { text: "confidence vote", size: "text-2xl", color: "text-orange-500", weight: "font-bold", rotate: Math.random() * 2 - 1 },
+    { text: "jobs", size: "text-2xl", color: "text-orange-600", weight: "font-bold", rotate: Math.random() * 2 - 1 },
+    { text: "finance", size: "text-2xl", color: "text-amber-500", weight: "font-normal", rotate: Math.random() * 2 - 1 },
+    { text: "industry", size: "text-xl", color: "text-green-600", weight: "font-normal", rotate: Math.random() * 2 - 1 },
+    { text: "tariffs", size: "text-xl", color: "text-blue-500", weight: "font-normal", rotate: Math.random() * 2 - 1 },
+    { text: "agreement", size: "text-xl", color: "text-red-500", weight: "font-normal", rotate: Math.random() * 2 - 1 },
+    { text: "climate action", size: "text-lg", color: "text-emerald-500", weight: "font-normal", rotate: Math.random() * 2 - 1 },
+    { text: "public safety", size: "text-lg", color: "text-orange-500", weight: "font-normal", rotate: Math.random() * 2 - 1 },
+    { text: "housing", size: "text-lg", color: "text-purple-500", weight: "font-normal", rotate: Math.random() * 2 - 1 },
+    { text: "immigration", size: "text-base", color: "text-amber-600", weight: "font-normal", rotate: Math.random() * 2 - 1 },
+    { text: "healthcare", size: "text-base", color: "text-pink-500", weight: "font-normal", rotate: Math.random() * 2 - 1 },
+    { text: "budget", size: "text-base", color: "text-gray-600", weight: "font-normal", rotate: Math.random() * 2 - 1 },
+    { text: "infrastructure", size: "text-sm", color: "text-lime-600", weight: "font-normal", rotate: Math.random() * 2 - 1 }
+  ], []); // Empty dependency array ensures this runs only once
 
   return (
     <div className="py-12 px-4">
@@ -31,12 +32,11 @@ const WordCloud = () => {
             className={`
               ${word.size} ${word.color} ${word.weight}
               cursor-pointer
-              transition-all duration-200
               hover:opacity-80
               inline-block
             `}
             style={{
-              transform: `rotate(${Math.random() * 3 - 1.5}deg)`,
+              transform: `rotate(${word.rotate}deg)`,
               padding: '0.25rem'
             }}
           >

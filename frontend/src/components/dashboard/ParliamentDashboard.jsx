@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { useVotes } from '../../hooks/useVotes';
+import React, { useState, useEffect } from 'react';
 // Import styling directly to ensure it's included
 import '../../index.css';
 
@@ -49,23 +48,6 @@ const SimpleVoteCard = ({ vote }) => {
     </div>
   );
 };
-
-const SimpleWordCloud = () => (
-  <div className="p-4 bg-gray-50 rounded-lg border">
-    <h2 className="text-lg font-semibold mb-4">Trending Topics in Parliament</h2>
-    <div className="flex flex-wrap justify-center gap-3 py-6">
-      {["united states", "international trade", "softwood lumber", "economic statement", 
-        "healthcare", "budget", "environment", "COVID-19", "inflation", "housing"].map((word, i) => (
-        <span 
-          key={i} 
-          className={`text-${Math.floor(Math.random() * 3) + 1}xl text-blue-${Math.floor(Math.random() * 4) + 5}00 font-medium px-2`}
-        >
-          {word}
-        </span>
-      ))}
-    </div>
-  </div>
-);
 
 const SimpleTabs = ({ children, defaultTab }) => {
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -121,7 +103,91 @@ const SimpleTabs = ({ children, defaultTab }) => {
 // Main Dashboard Component
 const ParliamentDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { votes, loading, error } = useVotes();
+  const [votes, setVotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Directly fetch mock votes data
+  useEffect(() => {
+    const fetchVotes = async () => {
+      try {
+        setLoading(true);
+        
+        // Mock data - directly included to avoid import issues
+        const mockVotes = [
+          {
+            id: "v1",
+            number: 928,
+            date: "2024-12-17",
+            description: {
+              en: "Motion on International Trade Agreement with United States",
+              fr: "Motion sur l'accord commercial international avec les États-Unis"
+            },
+            result: "Passed",
+            yea_total: 177,
+            nay_total: 140,
+            paired_total: 0,
+            bill_url: null
+          },
+          {
+            id: "v2",
+            number: 927,
+            date: "2024-12-17",
+            description: {
+              en: "Economic Statement Implementation Act",
+              fr: "Loi d'exécution de l'énoncé économique"
+            },
+            result: "Passed",
+            yea_total: 296,
+            nay_total: 17,
+            paired_total: 0,
+            bill_url: "/bills/44-1/C-123/"
+          },
+          {
+            id: "v3",
+            number: 926,
+            date: "2024-12-16",
+            description: {
+              en: "Motion on Softwood Lumber Industry Support",
+              fr: "Motion sur le soutien à l'industrie du bois d'oeuvre"
+            },
+            result: "Failed",
+            yea_total: 144,
+            nay_total: 167,
+            paired_total: 0,
+            bill_url: "/bills/44-1/C-45/"
+          },
+          {
+            id: "v4",
+            number: 925,
+            date: "2024-12-15",
+            description: {
+              en: "Climate Action Implementation Bill",
+              fr: "Projet de loi sur la mise en œuvre de l'action climatique"
+            },
+            result: "Passed",
+            yea_total: 189,
+            nay_total: 132,
+            paired_total: 0,
+            bill_url: null
+          }
+        ];
+        
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        setVotes(mockVotes);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching votes:', err);
+        setError('Failed to load votes data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVotes();
+  }, []);
 
   const filteredVotes = votes.filter(vote => 
     vote.description?.en?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -169,9 +235,34 @@ const ParliamentDashboard = () => {
         )}
       </SimpleTabs>
 
-      {/* Word Cloud */}
+      {/* Word Cloud Section */}
       <div className="mt-6">
-        <SimpleWordCloud />
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-2">Trending Topics in Parliament</h2>
+          <div className="py-12 px-4">
+            <div className="flex flex-wrap justify-center items-center gap-2 text-center leading-none">
+              {[
+                { text: "united states", size: "text-3xl", color: "text-blue-600" },
+                { text: "international trade", size: "text-2xl", color: "text-indigo-500" },
+                { text: "softwood lumber", size: "text-2xl", color: "text-green-600" },
+                { text: "economic statement", size: "text-xl", color: "text-purple-500" },
+                { text: "healthcare", size: "text-xl", color: "text-red-500" },
+                { text: "budget", size: "text-xl", color: "text-blue-500" },
+                { text: "environment", size: "text-lg", color: "text-green-500" },
+                { text: "COVID-19", size: "text-lg", color: "text-orange-500" },
+                { text: "inflation", size: "text-base", color: "text-red-600" },
+                { text: "housing", size: "text-base", color: "text-blue-600" }
+              ].map((word, index) => (
+                <span
+                  key={index}
+                  className={`${word.size} ${word.color} font-medium inline-block px-2`}
+                >
+                  {word.text}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
