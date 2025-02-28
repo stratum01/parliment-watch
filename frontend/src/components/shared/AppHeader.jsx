@@ -1,6 +1,5 @@
-// src/components/shared/AppHeader.jsx
-
 import React from 'react';
+import { Link } from 'react-router-dom';
 import APIStatus from './APIStatus';
 
 const AppHeader = () => {
@@ -9,19 +8,18 @@ const AppHeader = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <img
-                className="h-8 w-auto"
-                src="/api/placeholder/32/32"
-                alt="Parliament Watch"
-              />
-            </div>
-            <div className="ml-3">
-              <h1 className="text-xl font-bold text-gray-900">Parliament Watch</h1>
-              <p className="text-sm text-gray-500">
-                Tracking Canadian Parliamentary Activity
-              </p>
-            </div>
+            <Link to="/" className="flex items-center">
+              {/* Replace the image with a colored box as a simple logo */}
+              <div className="h-8 w-8 bg-blue-600 rounded flex-shrink-0 flex items-center justify-center text-white font-bold">
+                PW
+              </div>
+              <div className="ml-3">
+                <h1 className="text-xl font-bold text-gray-900">Parliament Watch</h1>
+                <p className="text-sm text-gray-500">
+                  Tracking Canadian Parliamentary Activity
+                </p>
+              </div>
+            </Link>
           </div>
           
           <div className="hidden md:block">
