@@ -7,10 +7,10 @@ primary_region = "yyz"
 [[vm]]
   cpu_kind = "shared"
   cpus = 1
-  memory_mb = 1024
+  memory_mb = 1024  # Much less memory needed for serving static files
 
 [http_service]
-  internal_port = 8080  # Node.js server port
+  internal_port = 80  # Nginx uses port 80
   force_https = true
   auto_stop_machines = true
   auto_start_machines = true

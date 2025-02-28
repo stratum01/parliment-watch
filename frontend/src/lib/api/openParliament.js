@@ -1,8 +1,9 @@
 import cache from '../cache';
 import { createAPIError, APIError } from './errorHandler';
 
-// Using our Nginx proxy path instead of direct API URL
-const API_BASE_URL = '/api/openparliament';
+// We're using a CORS proxy to avoid CORS issues
+const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+const API_BASE_URL = 'https://api.openparliament.ca';
 
 // Cache TTLs
 const CACHE_TTL = {
@@ -20,7 +21,7 @@ const CACHE_TTL = {
  */
 async function fetchFromAPI(endpoint, params = {}, ttl = CACHE_TTL.LIST) {
   // Build URL with query parameters
-  const url = new URL(endpoint, window.location.origin + API_BASE_URL);
+  const url = new URL(`${API_BASE_URL}${endpoint}`);
   
   // Always request JSON format
   url.searchParams.append('format', 'json');
@@ -45,8 +46,15 @@ async function fetchFromAPI(endpoint, params = {}, ttl = CACHE_TTL.LIST) {
   }
 
   try {
-    // Headers managed by the Nginx proxy
-    const response = await fetch(url.toString());
+    // Add proper headers including User-Agent with contact email
+    const headers = {
+      'Accept': 'application/json',
+      'User-Agent': 'Parliament-Watch/1.0 (jrfchambers@gmail.com)',
+      'API-Version': 'v1',
+    };
+    
+    // Use CORS proxy to avoid CORS issues
+    const response = await fetch(`${CORS_PROXY}${url.toString()}`, { headers });
     
     if (!response.ok) {
       throw await createAPIError(response, endpoint);
@@ -75,112 +83,3 @@ async function fetchFromAPI(endpoint, params = {}, ttl = CACHE_TTL.LIST) {
     );
   }
 }
-
-/**
- * Get a list of bills with pagination
- * @param {Object} options - Options for the request
- * @param {number} options.limit - Number of items per page
- * @param {number} options.offset - Offset for pagination
- * @param {string} options.session - Filter by parliamentary session
- * @returns {Promise<Object>} - List of bills with pagination info
- */
-export async function getBills({ limit = 20, offset = 0, session = null } = {}) {
-  const params = {
-    limit,
-    offset,
-    session,
-  };
-  
-  return fetchFromAPI('/bills/', params);
-}
-
-/**
- * Get details for a specific bill
- * @param {string} billUrl - The URL path for the bill (e.g., "/bills/44-1/C-32/")
- * @returns {Promise<Object>} - Bill details
- */
-export async function getBillDetails(billUrl) {
-  return fetchFromAPI(billUrl, {}, CACHE_TTL.DETAIL);
-}
-
-/**
- * Get a list of votes with pagination
- * @param {Object} options - Options for the request
- * @param {number} options.limit - Number of items per page
- * @param {number} options.offset - Offset for pagination
- * @param {string} options.session - Filter by parliamentary session
- * @returns {Promise<Object>} - List of votes with pagination info
- */
-export async function getVotes({ limit = 20, offset = 0, session = null } = {}) {
-  const params = {
-    limit,
-    offset,
-    session,
-  };
-  
-  return fetchFromAPI('/votes/', params);
-}
-
-/**
- * Get details for a specific vote
- * @param {string} voteUrl - The URL path for the vote (e.g., "/votes/44-1/928/")
- * @returns {Promise<Object>} - Vote details
- */
-export async function getVoteDetails(voteUrl) {
-  return fetchFromAPI(voteUrl, {}, CACHE_TTL.DETAIL);
-}
-
-/**
- * Get a list of members with pagination
- * @param {Object} options - Options for the request
- * @param {number} options.limit - Number of items per page
- * @param {number} options.offset - Offset for pagination
- * @param {string} options.province - Filter by province
- * @param {string} options.party - Filter by party
- * @returns {Promise<Object>} - List of members with pagination info
- */
-export async function getMembers({ limit = 20, offset = 0, province = null, party = null } = {}) {
-  const params = {
-    limit,
-    offset,
-    province,
-    party,
-  };
-  
-  return fetchFromAPI('/politicians/', params);
-}
-
-/**
- * Get details for a specific member
- * @param {string} memberUrl - The URL path for the member (e.g., "/politicians/justin-trudeau/")
- * @returns {Promise<Object>} - Member details
- */
-export async function getMemberDetails(memberUrl) {
-  return fetchFromAPI(memberUrl, {}, CACHE_TTL.DETAIL);
-}
-
-/**
- * Get votes for a specific member
- * @param {string} memberUrl - The URL path for the member
- * @param {number} limit - Number of items per page
- * @param {number} offset - Offset for pagination
- * @returns {Promise<Object>} - Member's voting history
- */
-export async function getMemberVotes(memberUrl, { limit = 20, offset = 0 } = {}) {
-  const params = {
-    limit,
-    offset,
-  };
-  
-  return fetchFromAPI(`${memberUrl}votes/`, params, CACHE_TTL.MEMBER_VOTES);
-}
-
-export default {
-  getBills,
-  getBillDetails,
-  getVotes,
-  getVoteDetails,
-  getMembers,
-  getMemberDetails,
-  getMemberVotes,
-};
