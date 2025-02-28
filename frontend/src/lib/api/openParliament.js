@@ -1,10 +1,3 @@
-// src/lib/api/openParliament.js
-
-/**
- * Service to interact with the OpenParliament.ca API
- * Based on documentation at openparliament.ca
- */
-
 import cache from '../cache';
 import { createAPIError, APIError } from './errorHandler';
 
@@ -83,6 +76,7 @@ async function fetchFromAPI(endpoint, params = {}, ttl = CACHE_TTL.LIST) {
       { originalError: error }
     );
   }
+}
 
 /**
  * Get a list of bills with pagination
