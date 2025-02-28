@@ -1,9 +1,3 @@
-/**
- * Extract page number from a URL
- * @param {string} url - URL with pagination parameters
- * @param {string} paramName - Parameter name (default: 'offset')
- * @returns {number} - Page number extracted from URL
- */
 export function extractPageFromUrl(url, paramName = 'offset') {
   if (!url) return 0;
   
@@ -58,3 +52,9 @@ export function parsePagination(paginationData, limit = 20) {
     currentPage,
     totalPages,
   };
+}
+
+export default {
+  extractPageFromUrl,
+  parsePagination
+};
