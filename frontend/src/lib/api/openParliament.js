@@ -83,3 +83,112 @@ async function fetchFromAPI(endpoint, params = {}, ttl = CACHE_TTL.LIST) {
     );
   }
 }
+
+/**
+ * Get a list of bills with pagination
+ * @param {Object} options - Options for the request
+ * @param {number} options.limit - Number of items per page
+ * @param {number} options.offset - Offset for pagination
+ * @param {string} options.session - Filter by parliamentary session
+ * @returns {Promise<Object>} - List of bills with pagination info
+ */
+export async function getBills({ limit = 20, offset = 0, session = null } = {}) {
+  const params = {
+    limit,
+    offset,
+    session,
+  };
+  
+  return fetchFromAPI('/bills/', params);
+}
+
+/**
+ * Get details for a specific bill
+ * @param {string} billUrl - The URL path for the bill (e.g., "/bills/44-1/C-32/")
+ * @returns {Promise<Object>} - Bill details
+ */
+export async function getBillDetails(billUrl) {
+  return fetchFromAPI(billUrl, {}, CACHE_TTL.DETAIL);
+}
+
+/**
+ * Get a list of votes with pagination
+ * @param {Object} options - Options for the request
+ * @param {number} options.limit - Number of items per page
+ * @param {number} options.offset - Offset for pagination
+ * @param {string} options.session - Filter by parliamentary session
+ * @returns {Promise<Object>} - List of votes with pagination info
+ */
+export async function getVotes({ limit = 20, offset = 0, session = null } = {}) {
+  const params = {
+    limit,
+    offset,
+    session,
+  };
+  
+  return fetchFromAPI('/votes/', params);
+}
+
+/**
+ * Get details for a specific vote
+ * @param {string} voteUrl - The URL path for the vote (e.g., "/votes/44-1/928/")
+ * @returns {Promise<Object>} - Vote details
+ */
+export async function getVoteDetails(voteUrl) {
+  return fetchFromAPI(voteUrl, {}, CACHE_TTL.DETAIL);
+}
+
+/**
+ * Get a list of members with pagination
+ * @param {Object} options - Options for the request
+ * @param {number} options.limit - Number of items per page
+ * @param {number} options.offset - Offset for pagination
+ * @param {string} options.province - Filter by province
+ * @param {string} options.party - Filter by party
+ * @returns {Promise<Object>} - List of members with pagination info
+ */
+export async function getMembers({ limit = 20, offset = 0, province = null, party = null } = {}) {
+  const params = {
+    limit,
+    offset,
+    province,
+    party,
+  };
+  
+  return fetchFromAPI('/politicians/', params);
+}
+
+/**
+ * Get details for a specific member
+ * @param {string} memberUrl - The URL path for the member (e.g., "/politicians/justin-trudeau/")
+ * @returns {Promise<Object>} - Member details
+ */
+export async function getMemberDetails(memberUrl) {
+  return fetchFromAPI(memberUrl, {}, CACHE_TTL.DETAIL);
+}
+
+/**
+ * Get votes for a specific member
+ * @param {string} memberUrl - The URL path for the member
+ * @param {number} limit - Number of items per page
+ * @param {number} offset - Offset for pagination
+ * @returns {Promise<Object>} - Member's voting history
+ */
+export async function getMemberVotes(memberUrl, { limit = 20, offset = 0 } = {}) {
+  const params = {
+    limit,
+    offset,
+  };
+  
+  return fetchFromAPI(`${memberUrl}votes/`, params, CACHE_TTL.MEMBER_VOTES);
+}
+
+export default {
+  getBills,
+  getBillDetails,
+  getVotes,
+  getVoteDetails,
+  getMembers,
+  getMemberDetails,
+  getMemberVotes,
+};
