@@ -1,200 +1,159 @@
-import { useState, useEffect } from 'react';
+// src/hooks/useBills.js
 
-export const useBills = (params = {}) => {
+import { useState, useEffect, useCallback } from 'react';
+import { getBills, getBillDetails } from '../lib/api/openParliament';
+import { parsePagination } from '../lib/paginationUtils';
+import { handleAPIError } from '../lib/api/errorHandler';
+
+/**
+ * Hook to fetch and manage bills data from the OpenParliament API
+ * @param {Object} options - Hook options
+ * @param {number} options.limit - Number of bills per page
+ * @param {number} options.initialOffset - Initial offset for pagination
+ * @param {string} options.session - Parliamentary session to filter by
+ * @returns {Object} - Bills data and control functions
+ */
+function useBills({ limit = 20, initialOffset = 0, session = null } = {}) {
   const [bills, setBills] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    offset: initialOffset,
+    limit,
+    hasNext: false,
+    hasPrevious: false,
+    nextUrl: null,
+    previousUrl: null,
+    totalPages: 0,
+    currentPage: 0,
+  });
 
-  useEffect(() => {
-    const fetchBills = async () => {
-      try {
-        setLoading(true);
-        
-        // Mock data - directly included to avoid import issues
-        const mockBills = [
-          {
-            id: "b1",
-            number: "C-79",
-            name: {
-              en: "An Act for granting to His Majesty certain sums of money for the federal public administration",
-              fr: "Loi portant octroi à Sa Majesté de crédits pour l'administration publique fédérale"
-            },
-            introduced_date: "2024-12-01",
-            status: "Third Reading",
-            sponsor: "Hon. Chrystia Freeland",
-            last_event: "Passed third reading (2024-12-10)",
-            progress: 90,
-            session: "44-1"
-          },
-          {
-            id: "b2",
-            number: "C-45",
-            name: {
-              en: "Cannabis Regulation Amendment Act",
-              fr: "Loi modifiant la réglementation du cannabis"
-            },
-            introduced_date: "2024-11-15",
-            status: "Committee",
-            sponsor: "Hon. Mark Holland",
-            last_event: "Referred to committee (2024-12-01)",
-            progress: 60,
-            session: "44-1"
-          },
-          {
-            id: "b3",
-            number: "C-56",
-            name: {
-              en: "Affordable Housing and Public Transit Act",
-              fr: "Loi sur le logement abordable et le transport en commun"
-            },
-            introduced_date: "2024-11-01",
-            status: "Second Reading",
-            sponsor: "Hon. Sean Fraser",
-            last_event: "Debate at second reading (2024-11-20)",
-            progress: 40,
-            session: "44-1"
-          },
-          {
-            id: "b4",
-            number: "C-123",
-            name: {
-              en: "Economic Statement Implementation Act",
-              fr: "Loi d'exécution de l'énoncé économique"
-            },
-            introduced_date: "2024-10-20",
-            status: "Royal Assent",
-            sponsor: "Hon. Chrystia Freeland",
-            last_event: "Royal Assent received (2024-12-15)",
-            progress: 100,
-            session: "44-1"
-          },
-          {
-            id: "b5",
-            number: "C-32",
-            name: {
-              en: "Online Streaming Act",
-              fr: "Loi sur la diffusion continue en ligne"
-            },
-            introduced_date: "2024-10-15",
-            status: "First Reading",
-            sponsor: "Hon. Pablo Rodriguez",
-            last_event: "Introduction and first reading (2024-10-15)",
-            progress: 20,
-            session: "44-1"
-          },
-          {
-            id: "b6",
-            number: "C-18",
-            name: {
-              en: "Online News Act",
-              fr: "Loi sur les nouvelles en ligne"
-            },
-            introduced_date: "2024-09-22",
-            status: "Royal Assent",
-            sponsor: "Hon. Pablo Rodriguez",
-            last_event: "Royal Assent received (2024-11-07)",
-            progress: 100,
-            session: "44-1"
-          }
-        ];
-        
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Apply filters if needed
-        let filteredBills = [...mockBills];
-        
-        if (params.status) {
-          filteredBills = filteredBills.filter(bill => 
-            bill.status.toLowerCase() === params.status.toLowerCase()
-          );
-        }
-        
-        setBills(filteredBills);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching bills:', err);
-        setError('Failed to load bills data.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBills();
-  }, [params]);
-
-  return { bills, loading, error };
-};
-
-export const useBillById = (id) => {
-  const [bill, setBill] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (!id) {
+  // Fetch bills with current pagination and filters
+  const fetchBills = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const data = await getBills({
+        limit: pagination.limit,
+        offset: pagination.offset,
+        session,
+      });
+      
+      // Update bills data
+      setBills(data.objects || []);
+      
+      // Update pagination information
+      const paginationData = data.pagination || {};
+      setPagination(prev => ({
+        ...prev,
+        ...parsePagination(paginationData, prev.limit)
+      }));
+    } catch (err) {
+      setError(handleAPIError(err, 'Failed to load bills data. Please try again.'));
+      console.error('Error fetching bills:', err);
+    } finally {
       setLoading(false);
-      return;
     }
+  }, [pagination.limit, pagination.offset, session]);
 
-    const fetchBill = async () => {
-      try {
-        setLoading(true);
-        
-        // Mock data - directly included to avoid import issues
-        const mockBills = [
-          {
-            id: "b1",
-            number: "C-79",
-            name: {
-              en: "An Act for granting to His Majesty certain sums of money for the federal public administration",
-              fr: "Loi portant octroi à Sa Majesté de crédits pour l'administration publique fédérale"
-            },
-            introduced_date: "2024-12-01",
-            status: "Third Reading",
-            sponsor: "Hon. Chrystia Freeland",
-            last_event: "Passed third reading (2024-12-10)",
-            progress: 90,
-            session: "44-1"
-          },
-          {
-            id: "b2",
-            number: "C-45",
-            name: {
-              en: "Cannabis Regulation Amendment Act",
-              fr: "Loi modifiant la réglementation du cannabis"
-            },
-            introduced_date: "2024-11-15",
-            status: "Committee",
-            sponsor: "Hon. Mark Holland",
-            last_event: "Referred to committee (2024-12-01)",
-            progress: 60,
-            session: "44-1"
-          },
-          // other bills...
-        ];
-        
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const bill = mockBills.find(bill => bill.id === id || bill.number === id);
-        
-        if (!bill) {
-          throw new Error('Bill not found');
-        }
-        
-        setBill(bill);
-        setError(null);
-      } catch (err) {
-        console.error(`Error fetching bill ${id}:`, err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
+  // Initial data fetch
+  useEffect(() => {
+    fetchBills();
+  }, [fetchBills]);
+
+  // Handle manual refresh
+  const refresh = () => {
+    fetchBills();
+  };
+
+  // Handle pagination
+  const goToNextPage = useCallback(() => {
+    if (pagination.hasNext) {
+      setPagination(prev => ({
+        ...prev,
+        offset: prev.offset + prev.limit,
+      }));
+    }
+  }, [pagination.hasNext]);
+
+  const goToPreviousPage = useCallback(() => {
+    if (pagination.hasPrevious) {
+      setPagination(prev => ({
+        ...prev,
+        offset: Math.max(0, prev.offset - prev.limit),
+      }));
+    }
+  }, [pagination.hasPrevious]);
+
+  const goToPage = useCallback((page) => {
+    const newOffset = Math.max(0, (page - 1) * pagination.limit);
+    setPagination(prev => ({
+      ...prev,
+      offset: newOffset,
+    }));
+  }, [pagination.limit]);
+
+  // Fetch a single bill's details
+  const [billDetails, setBillDetails] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState(null);
+
+  const fetchBillDetails = useCallback(async (billUrl) => {
+    if (!billUrl) return;
+    
+    try {
+      setDetailsLoading(true);
+      setDetailsError(null);
+      
+      const data = await getBillDetails(billUrl);
+      setBillDetails(data);
+    } catch (err) {
+      setDetailsError(handleAPIError(err, 'Failed to load bill details. Please try again.'));
+      console.error('Error fetching bill details:', err);
+    } finally {
+      setDetailsLoading(false);
+    }
+  }, []);
+
+  // Process bill data to extract status information
+  const processedBills = bills.map(bill => {
+    // The OpenParliament API doesn't directly provide status/progress
+    // We'll need to derive this from other fields or possibly get it from details
+    
+    // Default structure to match what our components expect
+    return {
+      ...bill,
+      id: bill.url, // Use URL as unique ID
+      number: bill.number,
+      name: bill.name,
+      introduced_date: bill.introduced,
+      // The following fields need to be derived from bill details or set defaults
+      status: "First Reading", // Default status - would need details API to get actual status
+      sponsor: bill.sponsor_politician_url 
+        ? `${bill.sponsor_politician_url.split('/').slice(-2, -1)[0].replace('-', ' ')}` 
+        : "Unknown",
+      last_event: `Introduced (${bill.introduced})`,
+      progress: 20, // Default progress - would need details API to calculate
+      session: bill.session
     };
+  });
 
-    fetchBill();
-  }, [id]);
+  return {
+    bills: processedBills,
+    rawBills: bills, // Also return the raw data
+    loading,
+    error,
+    pagination,
+    refresh,
+    goToNextPage,
+    goToPreviousPage,
+    goToPage,
+    billDetails,
+    detailsLoading,
+    detailsError,
+    fetchBillDetails,
+  };
+}
 
-  return { bill, loading, error };
-};
+export default useBills;

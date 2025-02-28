@@ -1,137 +1,207 @@
-import { useState, useEffect } from 'react';
+// src/hooks/useMembers.js
 
-// Mock members data
-const mockMembers = [
-  {
-    id: "m1",
-    name: "Marco Mendicino",
-    party: "Liberal",
-    constituency: "Eglinton—Lawrence",
-    province: "ON",
-    email: "marco.mendicino@parl.gc.ca",
-    phone: "613-992-6361",
-    photo_url: "/api/placeholder/400/400",
-    roles: ["Minister of Public Safety"],
-    office: {
-      address: "511 Lawrence Avenue West, Toronto, Ontario, M6A 1A3",
-      phone: "416-781-5583"
-    }
-  },
-  {
-    id: "m2",
-    name: "Pierre Poilievre",
-    party: "Conservative",
-    constituency: "Carleton",
-    province: "ON",
-    email: "pierre.poilievre@parl.gc.ca",
-    phone: "613-992-2772",
-    photo_url: "/api/placeholder/400/400",
-    roles: ["Leader of the Official Opposition"],
-    office: {
-      address: "1139 Mill Street, Manotick, Ontario, K4M 1A5",
-      phone: "613-692-3331"
-    }
-  },
-  {
-    id: "m3",
-    name: "Jagmeet Singh",
-    party: "NDP",
-    constituency: "Burnaby South",
-    province: "BC",
-    email: "jagmeet.singh@parl.gc.ca",
-    phone: "613-995-7224",
-    photo_url: "/api/placeholder/400/400",
-    roles: ["Leader of the New Democratic Party"],
-    office: {
-      address: "4940 Kingsway, Burnaby, British Columbia, V5H 2E2",
-      phone: "604-291-8863"
-    }
-  },
-  {
-    id: "m4",
-    name: "Elizabeth May",
-    party: "Green",
-    constituency: "Saanich—Gulf Islands",
-    province: "BC",
-    email: "elizabeth.may@parl.gc.ca",
-    phone: "613-996-1119",
-    photo_url: "/api/placeholder/400/400",
-    roles: ["Parliamentary Leader of the Green Party"],
-    office: {
-      address: "9711 Fourth Street, Sidney, British Columbia, V8L 2Y8",
-      phone: "250-657-2000"
-    }
-  },
-  {
-    id: "m5",
-    name: "Yves-François Blanchet",
-    party: "Bloc Québécois",
-    constituency: "Beloeil—Chambly",
-    province: "QC",
-    email: "yves-francois.blanchet@parl.gc.ca",
-    phone: "613-992-2640",
-    photo_url: "/api/placeholder/400/400",
-    roles: ["Leader of the Bloc Québécois"],
-    office: {
-      address: "1997 Rue Drummond, Beloeil, Quebec, J3G 0K9",
-      phone: "450-658-0088"
-    }
-  },
-  {
-    id: "m6",
-    name: "Chrystia Freeland",
-    party: "Liberal",
-    constituency: "University—Rosedale",
-    province: "ON",
-    email: "chrystia.freeland@parl.gc.ca",
-    phone: "613-992-5234",
-    photo_url: "/api/placeholder/400/400",
-    roles: ["Deputy Prime Minister", "Minister of Finance"],
-    office: {
-      address: "344 Bloor Street West, Toronto, Ontario, M5S 3A7",
-      phone: "416-928-1451"
-    }
-  }
-];
+import { useState, useEffect, useCallback } from 'react';
+import { getMembers, getMemberDetails, getMemberVotes } from '../lib/api/openParliament';
+import { parsePagination } from '../lib/paginationUtils';
+import { handleAPIError } from '../lib/api/errorHandler';
 
-export const useMembers = () => {
+/**
+ * Hook to fetch and manage members data from the OpenParliament API
+ * @param {Object} options - Hook options
+ * @param {number} options.limit - Number of members per page
+ * @param {number} options.initialOffset - Initial offset for pagination
+ * @param {string} options.province - Province filter
+ * @param {string} options.party - Party filter
+ * @returns {Object} - Members data and control functions
+ */
+function useMembers({ limit = 20, initialOffset = 0, province = null, party = null } = {}) {
   const [members, setMembers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    offset: initialOffset,
+    limit,
+    hasNext: false,
+    hasPrevious: false,
+    nextUrl: null,
+    previousUrl: null,
+    totalPages: 0,
+    currentPage: 0,
+  });
 
-  useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setMembers(mockMembers);
+  // Fetch members with current pagination and filters
+  const fetchMembers = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const data = await getMembers({
+        limit: pagination.limit,
+        offset: pagination.offset,
+        province,
+        party,
+      });
+      
+      // Update members data
+      setMembers(data.objects || []);
+      
+      // Update pagination information
+      const paginationData = data.pagination || {};
+      setPagination(prev => ({
+        ...prev,
+        ...parsePagination(paginationData, prev.limit)
+      }));
+    } catch (err) {
+      setError(handleAPIError(err, 'Failed to load members data. Please try again.'));
+      console.error('Error fetching members:', err);
+    } finally {
       setLoading(false);
-    }, 500);
+    }
+  }, [pagination.limit, pagination.offset, province, party]);
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchMembers();
+  }, [fetchMembers]);
+
+  // Handle manual refresh
+  const refresh = () => {
+    fetchMembers();
+  };
+
+  // Handle pagination
+  const goToNextPage = useCallback(() => {
+    if (pagination.hasNext) {
+      setPagination(prev => ({
+        ...prev,
+        offset: prev.offset + prev.limit,
+      }));
+    }
+  }, [pagination.hasNext]);
+
+  const goToPreviousPage = useCallback(() => {
+    if (pagination.hasPrevious) {
+      setPagination(prev => ({
+        ...prev,
+        offset: Math.max(0, prev.offset - prev.limit),
+      }));
+    }
+  }, [pagination.hasPrevious]);
+
+  const goToPage = useCallback((page) => {
+    const newOffset = Math.max(0, (page - 1) * pagination.limit);
+    setPagination(prev => ({
+      ...prev,
+      offset: newOffset,
+    }));
+  }, [pagination.limit]);
+
+  // Fetch a single member's details
+  const [memberDetails, setMemberDetails] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState(null);
+
+  const fetchMemberDetails = useCallback(async (memberUrl) => {
+    if (!memberUrl) return;
+    
+    try {
+      setDetailsLoading(true);
+      setDetailsError(null);
+      
+      const data = await getMemberDetails(memberUrl);
+      setMemberDetails(data);
+    } catch (err) {
+      setDetailsError(handleAPIError(err, 'Failed to load member details. Please try again.'));
+      console.error('Error fetching member details:', err);
+    } finally {
+      setDetailsLoading(false);
+    }
   }, []);
 
-  return { members, loading, error };
-};
+  // Fetch a member's voting history
+  const [memberVotes, setMemberVotes] = useState([]);
+  const [votesLoading, setVotesLoading] = useState(false);
+  const [votesError, setVotesError] = useState(null);
+  const [votesPagination, setVotesPagination] = useState({
+    offset: 0,
+    limit: 20,
+    hasNext: false,
+    hasPrevious: false,
+    nextUrl: null,
+    previousUrl: null,
+  });
 
-export const useMember = (id) => {
-  const [member, setMember] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (!id) {
-      setLoading(false);
-      return;
+  const fetchMemberVotes = useCallback(async (memberUrl, offset = 0, limit = 20) => {
+    if (!memberUrl) return;
+    
+    try {
+      setVotesLoading(true);
+      setVotesError(null);
+      
+      const data = await getMemberVotes(memberUrl, {
+        offset,
+        limit,
+      });
+      
+      setMemberVotes(data.objects || []);
+      
+      // Update pagination information
+      const paginationData = data.pagination || {};
+      setVotesPagination({
+        offset,
+        limit,
+        hasNext: !!paginationData.next_url,
+        hasPrevious: !!paginationData.previous_url,
+        nextUrl: paginationData.next_url,
+        previousUrl: paginationData.previous_url,
+      });
+    } catch (err) {
+      setVotesError(handleAPIError(err, 'Failed to load voting history. Please try again.'));
+      console.error('Error fetching member votes:', err);
+    } finally {
+      setVotesLoading(false);
     }
+  }, []);
 
-    // Simulate API call
-    setTimeout(() => {
-      const foundMember = mockMembers.find(m => m.id === id);
-      if (foundMember) {
-        setMember(foundMember);
-      } else {
-        setError('Member not found');
+  // Process member data for easier use in components
+  const processedMembers = members.map(member => {
+    return {
+      id: member.url,
+      name: member.name,
+      party: member.current_party,
+      constituency: member.current_riding,
+      province: member.current_riding?.split(', ').pop(),
+      email: member.email || null,
+      phone: member.phone || null,
+      photo_url: member.image || "/api/placeholder/400/400",
+      roles: member.current_caucus_short ? [member.current_caucus_short] : [],
+      office: {
+        address: member.constituency_offices?.[0]?.postal || null,
+        phone: member.constituency_offices?.[0]?.tel || null
       }
-      setLoading(false);
-    }, 500);
-  }, [id]);
+    };
+  });
 
-  return { member, loading, error };
-};
+  return {
+    members: processedMembers,
+    rawMembers: members, // Also return the raw data
+    loading,
+    error,
+    pagination,
+    refresh,
+    goToNextPage,
+    goToPreviousPage,
+    goToPage,
+    memberDetails,
+    detailsLoading,
+    detailsError,
+    fetchMemberDetails,
+    memberVotes,
+    votesLoading,
+    votesError,
+    votesPagination,
+    fetchMemberVotes,
+  };
+}
+
+export default useMembers;

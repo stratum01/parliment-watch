@@ -3,7 +3,15 @@ import React from 'react';
 const BillCard = ({ bill }) => {
   if (!bill) return null;
   
-  const { number, name, introduced_date, status, sponsor, last_event, progress, session } = bill;
+  // Handle data from either mock data or the OpenParliament API
+  const number = bill.number;
+  const name = typeof bill.name === 'object' ? bill.name.en : (bill.name || 'Untitled');
+  const introduced_date = bill.introduced_date || bill.introduced || new Date().toISOString().split('T')[0];
+  const status = bill.status || 'First Reading'; // Default status
+  const sponsor = bill.sponsor || 'Unknown';
+  const last_event = bill.last_event || `Introduced (${introduced_date})`;
+  const progress = bill.progress || 20; // Default progress
+  const session = bill.session;
   
   // Format the date
   const formattedDate = new Date(introduced_date).toLocaleDateString('en-CA', {

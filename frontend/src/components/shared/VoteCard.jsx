@@ -1,11 +1,20 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Calendar, Check, X, ExternalLink, Info } from 'lucide-react';
 
 const VoteCard = ({ vote }) => {
   if (!vote) return null;
 
-  const { number, date, description, result, yea_total, nay_total, paired_total, bill_url } = vote;
+  // Handle data from either mock data or the OpenParliament API
+  const number = vote.number;
+  const date = vote.date;
+  const description = typeof vote.description === 'object' 
+    ? vote.description.en 
+    : (vote.description || 'No description available');
+  const result = vote.result;
+  const yea_total = vote.yea_total || 0;
+  const nay_total = vote.nay_total || 0;
+  const paired_total = vote.paired_total || 0;
+  const bill_url = vote.bill_url;
   
   // Prepare data for the pie chart
   const data = [
@@ -26,11 +35,11 @@ const VoteCard = ({ vote }) => {
   });
 
   // Total votes
-  const totalVotes = yea_total + nay_total + paired_total;
+  const totalVotes = yea_total + nay_total + (paired_total || 0);
   
   // Calculate percentages
-  const yeaPercent = Math.round((yea_total / totalVotes) * 100);
-  const nayPercent = Math.round((nay_total / totalVotes) * 100);
+  const yeaPercent = totalVotes > 0 ? Math.round((yea_total / totalVotes) * 100) : 0;
+  const nayPercent = totalVotes > 0 ? Math.round((nay_total / totalVotes) * 100) : 0;
 
   return (
     <div className="bg-white border rounded-lg shadow-sm overflow-hidden">

@@ -5,6 +5,13 @@ import VoteCard from './VoteCard';
 import { BillsList, BillStatusOverview } from '../bills';
 import { MemberProfile, MemberSearch, VotingHistory } from '../members';
 import { getMemberVotingHistory } from '../../lib/memberVotesData';
+// Import our custom hooks for API data
+import useVotes from '../../hooks/useVotes';
+import useBills from '../../hooks/useBills';
+import useMembers from '../../hooks/useMembers';
+// Import the pagination component
+import Pagination from '../shared/Pagination';
+
 
 // Hard-coded mock data for members to avoid dependency on hooks
 const mockMembers = [
