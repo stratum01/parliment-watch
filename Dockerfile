@@ -6,10 +6,11 @@ WORKDIR /app
 COPY package*.json ./
 COPY frontend/package*.json ./frontend/
 
-# Install dependencies
+# Install dependencies and React Router
 RUN npm install
 WORKDIR /app/frontend
 RUN npm install
+RUN npm install react-router-dom
 
 # Copy source files
 WORKDIR /app
@@ -31,7 +32,7 @@ COPY --from=builder /app/frontend/dist /usr/share/nginx/html
 # Ensure health check page exists
 RUN echo '<!DOCTYPE html><html><head><title>Health Check</title></head><body><p>OK</p></body></html>' > /usr/share/nginx/html/health.html
 
-# Copy custom nginx config
+# Copy custom nginx config with spa routing support
 RUN echo 'server { \
     listen 80; \
     location / { \
