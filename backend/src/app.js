@@ -1,31 +1,43 @@
-import express from 'express';
-import cors from 'cors';
-import votesRouter from './routes/votes.js';
-import billsRouter from './routes/bills.js';
-import membersRouter from './routes/members.js';
+const express = require('express');
+const path = require('path');
+const cors = require('cors');
+
+// Import routes
+const billsRouter = require('./routes/bills');
+const votesRouter = require('./routes/votes');
+const membersRouter = require('./routes/members');
+const proxyRouter = require('./routes/proxy');
 
 const app = express();
 
-// Configure CORS to allow requests from your Fly.io domain
-app.use(cors({
-  origin: ['https://parliament-watch.fly.dev', 'http://localhost:5173'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
-}));
+// Enable CORS for development
+app.use(cors());
 
+// Parse JSON bodies
 app.use(express.json());
 
-// Health check endpoint for Fly.io
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'healthy', service: 'backend' });
-});
-
 // API routes
-app.use('/api/votes', votesRouter);
-app.use('/api/bills', billsRouter);
-app.use('/api/members', membersRouter);
+app.use('/api', billsRouter);
+app.use('/api', votesRouter);
+app.use('/api', membersRouter);
+app.use('/api', proxyRouter);
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Serve static files from the frontend
+app.use(express.static(path.join(__dirname, '../../frontend/dist')));
+
+app.get('/health.html', (req, res) => {
+  res.send('<!DOCTYPE html><html><head><title>Health Check</title></head><body><p>OK</p></body></html>');
 });
+
+// Handle SPA routing - serve index.html for all non-API routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
+});
+
+module.exports = app;

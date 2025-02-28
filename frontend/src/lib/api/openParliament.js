@@ -1,7 +1,8 @@
 import cache from '../cache';
 import { createAPIError, APIError } from './errorHandler';
 
-const API_BASE_URL = 'https://api.openparliament.ca';
+// Using our Nginx proxy path instead of direct API URL
+const API_BASE_URL = '/api/openparliament';
 
 // Cache TTLs
 const CACHE_TTL = {
@@ -19,10 +20,13 @@ const CACHE_TTL = {
  */
 async function fetchFromAPI(endpoint, params = {}, ttl = CACHE_TTL.LIST) {
   // Build URL with query parameters
-  const url = new URL(`${API_BASE_URL}${endpoint}`);
+  const url = new URL(endpoint, window.location.origin + API_BASE_URL);
   
   // Always request JSON format
   url.searchParams.append('format', 'json');
+  
+  // Add API version parameter
+  url.searchParams.append('version', 'v1');
   
   // Add any additional parameters
   Object.entries(params).forEach(([key, value]) => {
@@ -41,14 +45,8 @@ async function fetchFromAPI(endpoint, params = {}, ttl = CACHE_TTL.LIST) {
   }
 
   try {
-    // Add proper headers including User-Agent with contact email
-    const headers = {
-      'Accept': 'application/json',
-      'User-Agent': 'Parliament-Watch/1.0 (contact@example.com)', // Replace with your email
-      'API-Version': 'v1',
-    };
-    
-    const response = await fetch(url.toString(), { headers });
+    // Headers managed by the Nginx proxy
+    const response = await fetch(url.toString());
     
     if (!response.ok) {
       throw await createAPIError(response, endpoint);

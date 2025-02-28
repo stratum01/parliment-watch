@@ -32,13 +32,22 @@ COPY --from=builder /app/frontend/dist /usr/share/nginx/html
 # Ensure health check page exists
 RUN echo '<!DOCTYPE html><html><head><title>Health Check</title></head><body><p>OK</p></body></html>' > /usr/share/nginx/html/health.html
 
-# Copy custom nginx config with spa routing support
+# Copy custom nginx config with spa routing support and CORS headers
 RUN echo 'server { \
     listen 80; \
     location / { \
         root /usr/share/nginx/html; \
         index index.html; \
         try_files $uri $uri/ /index.html; \
+    } \
+    location /api/openparliament/ { \
+        proxy_pass https://api.openparliament.ca/; \
+        proxy_set_header Host api.openparliament.ca; \
+        proxy_set_header X-Real-IP $remote_addr; \
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
+        proxy_set_header X-Forwarded-Proto $scheme; \
+        proxy_set_header User-Agent "Parliament-Watch/1.0 (jrfchambers@gmail.com)"; \
+        proxy_set_header API-Version v1; \
     } \
 }' > /etc/nginx/conf.d/default.conf
 
