@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const BillCard = ({ bill }) => {
   if (!bill) return null;
@@ -50,7 +51,7 @@ const BillCard = ({ bill }) => {
           </h3>
           <div className="text-sm text-gray-500">{formattedDate}</div>
         </div>
-        <p className="text-base text-gray-700 mt-1">{name.en}</p>
+        <p className="text-base text-gray-700 mt-1">{name}</p>
       </div>
       
       <div className="p-3">
@@ -86,15 +87,15 @@ const BillCard = ({ bill }) => {
           <span className="text-sm text-gray-600">
             Session: {session}
           </span>
-          <a 
-            href={`#/bills/${number}`}
+          <Link 
+            to={`/bills/${number}`}
             className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800"
           >
             <span className="mr-1">View Details</span>
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
-          </a>
+          </Link>
         </div>
       </div>
     </div>

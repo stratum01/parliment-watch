@@ -1,10 +1,21 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 const VoteCard = ({ vote }) => {
   if (!vote) return null;
 
-  const { number, date, description, result, yea_total, nay_total, paired_total, bill_url } = vote;
+  // Handle data from either mock data or the OpenParliament API
+  const number = vote.number;
+  const date = vote.date;
+  const description = typeof vote.description === 'object' 
+    ? vote.description.en 
+    : (vote.description || 'No description available');
+  const result = vote.result;
+  const yea_total = vote.yea_total || 0;
+  const nay_total = vote.nay_total || 0;
+  const paired_total = vote.paired_total || 0;
+  const bill_url = vote.bill_url;
   
   // Prepare data for the pie chart
   const data = [
@@ -28,15 +39,26 @@ const VoteCard = ({ vote }) => {
   const totalVotes = yea_total + nay_total + (paired_total || 0);
   
   // Calculate percentages
-  const yeaPercent = Math.round((yea_total / totalVotes) * 100);
-  const nayPercent = Math.round((nay_total / totalVotes) * 100);
+  const yeaPercent = totalVotes > 0 ? Math.round((yea_total / totalVotes) * 100) : 0;
+  const nayPercent = totalVotes > 0 ? Math.round((nay_total / totalVotes) * 100) : 0;
+
+  // Extract bill number from URL if available
+  const extractBillNumber = (url) => {
+    if (!url) return null;
+    const parts = url.split('/');
+    return parts[parts.length - 2];
+  };
+
+  const billNumber = bill_url ? extractBillNumber(bill_url) : null;
 
   return (
     <div className="bg-white border rounded-lg shadow-sm overflow-hidden mb-4">
       <div className="p-3 border-b">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold flex items-center">
-            Vote #{number}
+            <Link to={`/votes/${number}`} className="hover:text-blue-600">
+              Vote #{number}
+            </Link>
             <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
               result === 'Passed' 
                 ? 'bg-green-100 text-green-800' 
@@ -47,14 +69,14 @@ const VoteCard = ({ vote }) => {
           </h3>
           <div className="text-sm text-gray-500">{formattedDate}</div>
         </div>
-        <p className="text-base text-gray-700 mt-1">{description?.en || description}</p>
+        <p className="text-base text-gray-700 mt-1">{description}</p>
         {bill_url && (
-          <a 
-            href={`#${bill_url}`}
+          <Link 
+            to={`/bills/${billNumber}`}
             className="mt-1 text-sm text-blue-600 hover:text-blue-800 inline-flex items-center"
           >
             View Related Bill
-          </a>
+          </Link>
         )}
       </div>
       
