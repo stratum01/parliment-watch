@@ -1,38 +1,34 @@
-class Member {
-  constructor(data) {
-    this.id = data.id;
-    this.name = data.name;
-    this.party = data.party;
-    this.constituency = data.constituency;
-    this.province = data.province;
-    this.email = data.email;
-    this.phone = data.phone;
-    this.photo_url = data.photo_url;
-    this.roles = data.roles || [];
-    this.office = {
-      address: data.office_address,
-      phone: data.office_phone
-    };
-  }
+const mongoose = require('mongoose');
 
-  static fromApiResponse(data) {
-    return new Member(data);
-  }
+const memberSchema = new mongoose.Schema({
+  // Key fields from OpenParliament API
+  name: { type: String, required: true },
+  url: { type: String, required: true, unique: true },
+  party: { type: String },
+  constituency: { type: String },
+  province: { type: String },
+  photo_url: { type: String },
+  
+  // Additional fields from detailed member data
+  email: { type: String },
+  phone: { type: String },
+  roles: [String],
+  offices: [
+    {
+      postal: String,
+      tel: String,
+      fax: String,
+      type: String
+    }
+  ],
+  
+  // Caching metadata
+  data: { type: mongoose.Schema.Types.Mixed }, // Raw API data
+  expires: { type: Date, required: true },
+  last_updated: { type: Date, default: Date.now }
+}, { timestamps: true });
 
-  toJSON() {
-    return {
-      id: this.id,
-      name: this.name,
-      party: this.party,
-      constituency: this.constituency,
-      province: this.province,
-      email: this.email,
-      phone: this.phone,
-      photo_url: this.photo_url,
-      roles: this.roles,
-      office: this.office
-    };
-  }
-}
+memberSchema.index({ expires: 1 }, { expireAfterSeconds: 0 });
+memberSchema.index({ name: 'text' }); // For text search
 
-export default Member;
+module.exports = mongoose.model('Member', memberSchema);

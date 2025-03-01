@@ -1,43 +1,76 @@
 const express = require('express');
-const path = require('path');
 const cors = require('cors');
+const mongoose = require('mongoose');
+const morgan = require('morgan');
+const path = require('path');
+const helmet = require('helmet');
+const compression = require('compression');
+const { initScheduledJobs } = require('./services/scheduler');
 
-// Import routes
-const billsRouter = require('./routes/bills');
-const votesRouter = require('./routes/votes');
-const membersRouter = require('./routes/members');
-const proxyRouter = require('./routes/proxy');
+// Import route handlers
+const billsRoutes = require('./routes/bills');
+const votesRoutes = require('./routes/votes');
+const membersRoutes = require('./routes/members');
 
+// Create Express app
 const app = express();
 
-// Enable CORS for development
-app.use(cors());
+// Connect to MongoDB
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/parliament-watch', {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+    console.log('MongoDB connected');
+  } catch (error) {
+    console.error('MongoDB connection error:', error.message);
+    process.exit(1);
+  }
+};
 
-// Parse JSON bodies
-app.use(express.json());
-
-// API routes
-app.use('/api', billsRouter);
-app.use('/api', votesRouter);
-app.use('/api', membersRouter);
-app.use('/api', proxyRouter);
-
-// Serve static files from the frontend
-app.use(express.static(path.join(__dirname, '../../frontend/dist')));
-
-app.get('/health.html', (req, res) => {
-  res.send('<!DOCTYPE html><html><head><title>Health Check</title></head><body><p>OK</p></body></html>');
+// Call connectDB and initialize scheduler once connected
+connectDB().then(() => {
+  // Initialize scheduled jobs after DB connection
+  initScheduledJobs();
 });
 
-// Handle SPA routing - serve index.html for all non-API routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
+// Middleware
+app.use(helmet()); // Set security headers
+app.use(compression()); // Compress responses
+app.use(cors()); // Enable CORS for all routes
+app.use(express.json()); // Parse JSON request body
+app.use(morgan('combined')); // Request logging
+
+// API Routes
+app.use('/api/bills', billsRoutes);
+app.use('/api/votes', votesRoutes);
+app.use('/api/members', membersRoutes);
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
-// Error handler
+// Serve static assets in production
+if (process.env.NODE_ENV === 'production') {
+  // Set static folder
+  app.use(express.static(path.join(__dirname, '../../frontend/dist')));
+  
+  // Any routes not matched by API will serve the SPA
+  app.get('*', (req, res) => {
+    res.sendFile(path.resolve(__dirname, '../../frontend/dist', 'index.html'));
+  });
+}
+
+// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).send('Something broke!');
+  const statusCode = err.statusCode || 500;
+  res.status(statusCode).json({
+    message: err.message || 'Internal Server Error',
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
 });
 
 module.exports = app;
