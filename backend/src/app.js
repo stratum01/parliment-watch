@@ -18,13 +18,17 @@ const app = express();
 // Connect to MongoDB
 const connectDB = async () => {
   try {
+    console.log('Connecting to MongoDB...');
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/parliament-watch', {
       useNewUrlParser: true,
-      useUnifiedTopology: true
+      useUnifiedTopology: true,
+      retryWrites: true,
+      w: 'majority'
     });
-    console.log('MongoDB connected');
+    console.log('MongoDB connected successfully');
   } catch (error) {
     console.error('MongoDB connection error:', error.message);
+    console.error('Connection string format:', process.env.MONGODB_URI ? 'Environment variable set' : 'Using fallback');
     process.exit(1);
   }
 };
@@ -52,6 +56,23 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
+app.get('/api/db-test', async (req, res) => {
+  try {
+    // Test database connection
+    const dbStatus = mongoose.connection.readyState;
+    const statusMessages = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+    
+    res.json({
+      connection: statusMessages[dbStatus] || 'unknown',
+      database: mongoose.connection.name,
+      host: mongoose.connection.host,
+      models: Object.keys(mongoose.models)
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
   // Set static folder
@@ -76,6 +97,11 @@ app.use((err, req, res, next) => {
 // Add this to your app.js temporarily
 app.get('/api/admin/refresh-data', async (req, res) => {
   try {
+    // Import models
+    const Bill = require('./models/Bill');
+    const Vote = require('./models/Vote');
+    const Member = require('./models/Member');
+    
     // Clear existing cache
     await Promise.all([
       Bill.deleteMany({}),
