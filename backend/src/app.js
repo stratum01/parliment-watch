@@ -73,4 +73,26 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Add this to your app.js temporarily
+app.get('/api/admin/refresh-data', async (req, res) => {
+  try {
+    // Clear existing cache
+    await Promise.all([
+      Bill.deleteMany({}),
+      Vote.deleteMany({}),
+      Member.deleteMany({})
+    ]);
+    
+    // Trigger data refresh
+    const { updateRecentVotes, updateRecentBills } = require('./services/scheduler');
+    await updateRecentVotes();
+    await updateRecentBills();
+    
+    res.json({ success: true, message: 'Cache cleared and refresh triggered' });
+  } catch (error) {
+    console.error('Refresh error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = app;

@@ -1,4 +1,3 @@
-// services/proxy.js
 const axios = require('axios');
 const mongoose = require('mongoose');
 const { URLSearchParams } = require('url');
