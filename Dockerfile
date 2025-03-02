@@ -31,7 +31,8 @@ WORKDIR /app
 
 # Copy backend package files and install dependencies
 COPY backend/package*.json ./
-RUN npm ci --only=production
+# Use regular npm install instead of npm ci since package-lock.json might not exist
+RUN npm install --production
 
 # Copy backend source
 COPY backend/ ./
