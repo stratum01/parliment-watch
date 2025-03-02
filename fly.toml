@@ -20,6 +20,3 @@ primary_region = "yyz"
     path = "/api/health"
     protocol = "http"
 
-[mounts]
-  source="parliament_data"
-  destination="/data"

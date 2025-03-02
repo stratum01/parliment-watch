@@ -18,18 +18,22 @@ const app = express();
 // Connect to MongoDB
 const connectDB = async () => {
   try {
-    console.log('Connecting to MongoDB...');
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/parliament-watch', {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      retryWrites: true,
-      w: 'majority'
-    });
+    // Log redacted connection string for debugging
+    const connectionString = process.env.MONGODB_URI || 'mongodb://localhost:27017/parliament-watch';
+    const redactedString = connectionString.replace(/:([^@]*)@/, ':****@');
+    console.log(`Attempting to connect to MongoDB with: ${redactedString}`);
+    
+    await mongoose.connect(connectionString);
     console.log('MongoDB connected successfully');
   } catch (error) {
-    console.error('MongoDB connection error:', error.message);
-    console.error('Connection string format:', process.env.MONGODB_URI ? 'Environment variable set' : 'Using fallback');
-    process.exit(1);
+    console.error('MongoDB connection error details:', {
+      message: error.message,
+      code: error.code,
+      name: error.name
+    });
+    
+    // Don't exit immediately - this allows the app to start even if DB connection fails
+    console.error('Failed to connect to MongoDB. The application will continue to run but database functionality will be unavailable.');
   }
 };
 
