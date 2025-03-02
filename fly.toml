@@ -27,19 +27,6 @@ primary_region = "yyz"
     path = "/api/health"
     protocol = "http"
 
-[mounts]
-  source = "parliament_data"
-  destination = "/data"
-
-[[services]]
-  protocol = "tcp"
-  internal_port = 27017
-  processes = ["mongo"]
-
-  [[services.ports]]
-    port = 27017
-    handlers = ["pg_tls"]
-
 [[services]]
   protocol = "tcp"
   internal_port = 8080
@@ -55,12 +42,4 @@ primary_region = "yyz"
 
 [processes]
   app = "node src/server.js"
-  mongo = "mongod --dbpath /data/db --auth"
 
-[env.mongo]
-  MONGO_INITDB_ROOT_USERNAME = "pw_admin"
-  MONGO_INITDB_ROOT_PASSWORD = "REPLACE_WITH_SECURE_PASSWORD"
-  MONGO_INITDB_DATABASE = "parliament-watch"
-
-[env.app]
-  MONGODB_URI = "mongodb://pw_admin:REPLACE_WITH_SECURE_PASSWORD@localhost:27017/parliament-watch?authSource=admin"

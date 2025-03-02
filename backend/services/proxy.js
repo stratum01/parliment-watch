@@ -34,26 +34,29 @@ async function fetchFromAPI(endpoint, params = {}) {
     }
   });
 
+  console.log(`Fetching from OpenParliament API: ${url.toString()}`);
+
   try {
     // Add proper headers including User-Agent with contact email
     const headers = {
       'Accept': 'application/json',
-      'User-Agent': 'Parliament-Watch/1.0 (contact@parliament-watch.ca)',
+      'User-Agent': 'Parliament-Watch/1.0 (jrfchambers@gmail.com)',
       'API-Version': 'v1',
     };
     
     // Make the API request
     const response = await axios.get(url.toString(), { headers });
-    
+    console.log(`Successfully fetched data from ${endpoint}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching from ${endpoint}:`, error.message);
     
     if (error.response) {
-      throw new Error(`API request failed: ${error.response.status} ${error.response.statusText}`);
+      console.error(`API response status: ${error.response.status}`);
+      console.error(`API response data:`, error.response.data);
     }
     
-    throw new Error(`Failed to fetch data: ${error.message}`);
+    throw new Error(`API request failed: ${error.message}`);
   }
 }
 
