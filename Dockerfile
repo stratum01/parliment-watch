@@ -31,11 +31,13 @@ WORKDIR /app
 
 # Copy backend package files and install dependencies
 COPY backend/package*.json ./
-# Use regular npm install instead of npm ci since package-lock.json might not exist
 RUN npm install --production
 
-# Copy backend source
-COPY backend/ ./
+# Copy backend source code preserving directory structure
+COPY backend/src ./src
+COPY backend/services ./services
+COPY backend/models ./models
+COPY backend/routes ./routes
 
 # Copy built frontend from previous stage
 COPY --from=frontend-builder /app/frontend/dist ./public
