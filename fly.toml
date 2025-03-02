@@ -1,5 +1,3 @@
-# fly.toml - Combined application configuration
-
 app = "parliament-watch"
 primary_region = "yyz"
 
@@ -7,17 +5,12 @@ primary_region = "yyz"
   PORT = "8080"
   NODE_ENV = "production"
 
-[build]
-  [build.args]
-    NODE_VERSION = "18"
-
 [http_service]
   internal_port = 8080
   force_https = true
   auto_stop_machines = true
   auto_start_machines = true
   min_machines_running = 1
-  processes = ["app"]
 
   [[http_service.checks]]
     interval = "30s"
@@ -27,19 +20,6 @@ primary_region = "yyz"
     path = "/api/health"
     protocol = "http"
 
-[[services]]
-  protocol = "tcp"
-  internal_port = 8080
-  processes = ["app"]
-
-  [[services.ports]]
-    port = 80
-    handlers = ["http"]
-
-  [[services.ports]]
-    port = 443
-    handlers = ["tls", "http"]
-
-[processes]
-  app = "node src/server.js"
-
+[mounts]
+  source="parliament_data"
+  destination="/data"

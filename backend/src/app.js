@@ -75,14 +75,16 @@ app.get('/api/db-test', async (req, res) => {
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
-  // Set static folder
-  app.use(express.static(path.join(__dirname, '../../frontend/dist')));
-  
+  // Serve static assets for frontend
+  app.use(express.static(path.join(__dirname, '../public')));
+
   // Any routes not matched by API will serve the SPA
   app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../../frontend/dist', 'index.html'));
-  });
-}
+    res.sendFile(path.resolve(__dirname, '../public', 'index.html'));
+});}
+
+
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {

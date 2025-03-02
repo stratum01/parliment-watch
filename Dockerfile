@@ -1,8 +1,9 @@
-FROM node:20-slim AS builder
+# Multi-stage build for combined frontend and backend
+FROM node:18-slim AS frontend-builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy frontend package files
 COPY package*.json ./
 COPY frontend/package*.json ./frontend/
 
@@ -12,38 +13,41 @@ WORKDIR /app/frontend
 RUN npm install
 RUN npm install react-router-dom
 
-# Copy source files
+# Copy frontend source
 WORKDIR /app
 COPY . .
 
 # Add PostCSS config if it doesn't exist
 RUN [ -f "./frontend/postcss.config.js" ] || echo 'export default { plugins: { tailwindcss: {}, autoprefixer: {}, }, }' > ./frontend/postcss.config.js
 
-# Build the app with Tailwind fully processed
+# Build the frontend
 WORKDIR /app/frontend
 RUN npm run build
 
-# Use Nginx for production
-FROM nginx:alpine
+# Backend stage
+FROM node:18-slim
 
-# Copy the built app from the builder stage
-COPY --from=builder /app/frontend/dist /usr/share/nginx/html
+WORKDIR /app
 
-# Ensure health check page exists
-RUN echo '<!DOCTYPE html><html><head><title>Health Check</title></head><body><p>OK</p></body></html>' > /usr/share/nginx/html/health.html
+# Copy backend package files and install dependencies
+COPY backend/package*.json ./
+RUN npm ci --only=production
 
-# Copy custom nginx config with SPA routing support
-RUN echo 'server { \
-    listen 80; \
-    location / { \
-        root /usr/share/nginx/html; \
-        index index.html; \
-        try_files $uri $uri/ /index.html; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
+# Copy backend source
+COPY backend/ ./
 
-EXPOSE 80
+# Copy built frontend from previous stage
+COPY --from=frontend-builder /app/frontend/dist ./public
+
+# Expose the port
+EXPOSE 8080
+
+# Set port environment variable
+ENV PORT=8080
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -q -O- http://localhost/health.html || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+  CMD wget -qO- http://localhost:8080/api/health || exit 1
+
+# Start the application
+CMD ["node", "src/server.js"]
