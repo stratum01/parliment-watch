@@ -45,5 +45,5 @@ RUN echo 'server { \
 EXPOSE 80
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -q -O- http://localhost/health.html || exit 1
