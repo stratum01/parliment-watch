@@ -1,63 +1,56 @@
-// src/hooks/useMembers.js
-
 import { useState, useEffect, useCallback } from 'react';
-import { getMembers, getMemberDetails, getMemberVotes } from '../lib/api/openParliament';
-import { parsePagination } from '../lib/paginationUtils';
-import { handleAPIError } from '../lib/api/errorHandler';
 
 /**
- * Hook to fetch and manage members data from the OpenParliament API
+ * Hook to fetch and manage members data from our backend API
  * @param {Object} options - Hook options
  * @param {number} options.limit - Number of members per page
- * @param {number} options.initialOffset - Initial offset for pagination
- * @param {string} options.province - Province filter
- * @param {string} options.party - Party filter
+ * @param {number} options.page - Page number for pagination
  * @returns {Object} - Members data and control functions
  */
-function useMembers({ limit = 20, initialOffset = 0, province = null, party = null } = {}) {
+function useMembers({ limit = 20, page = 1 } = {}) {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({
-    offset: initialOffset,
+    page,
     limit,
-    hasNext: false,
-    hasPrevious: false,
-    nextUrl: null,
-    previousUrl: null,
     totalPages: 0,
-    currentPage: 0,
+    totalMembers: 0
   });
 
-  // Fetch members with current pagination and filters
+  // Fetch members with current pagination
   const fetchMembers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const data = await getMembers({
-        limit: pagination.limit,
-        offset: pagination.offset,
-        province,
-        party,
-      });
+      // Use your backend API instead of direct OpenParliament calls
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/members?page=${pagination.page}&limit=${pagination.limit}`);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
       
       // Update members data
-      setMembers(data.objects || []);
+      setMembers(data.members || []);
       
-      // Update pagination information
-      const paginationData = data.pagination || {};
-      setPagination(prev => ({
-        ...prev,
-        ...parsePagination(paginationData, prev.limit)
-      }));
+      // Update pagination information if provided by API
+      if (data.pagination) {
+        setPagination(prev => ({
+          ...prev,
+          totalPages: data.pagination.totalPages || 1,
+          totalMembers: data.pagination.totalMembers || data.members.length
+        }));
+      }
     } catch (err) {
-      setError(handleAPIError(err, 'Failed to load members data. Please try again.'));
+      setError(err.message || 'Failed to load members data. Please try again.');
       console.error('Error fetching members:', err);
     } finally {
       setLoading(false);
     }
-  }, [pagination.limit, pagination.offset, province, party]);
+  }, [pagination.page, pagination.limit]);
 
   // Initial data fetch
   useEffect(() => {
@@ -71,120 +64,62 @@ function useMembers({ limit = 20, initialOffset = 0, province = null, party = nu
 
   // Handle pagination
   const goToNextPage = useCallback(() => {
-    if (pagination.hasNext) {
+    if (pagination.page < pagination.totalPages) {
       setPagination(prev => ({
         ...prev,
-        offset: prev.offset + prev.limit,
+        page: prev.page + 1,
       }));
     }
-  }, [pagination.hasNext]);
+  }, [pagination.page, pagination.totalPages]);
 
   const goToPreviousPage = useCallback(() => {
-    if (pagination.hasPrevious) {
+    if (pagination.page > 1) {
       setPagination(prev => ({
         ...prev,
-        offset: Math.max(0, prev.offset - prev.limit),
+        page: prev.page - 1,
       }));
     }
-  }, [pagination.hasPrevious]);
+  }, [pagination.page]);
 
   const goToPage = useCallback((page) => {
-    const newOffset = Math.max(0, (page - 1) * pagination.limit);
-    setPagination(prev => ({
-      ...prev,
-      offset: newOffset,
-    }));
-  }, [pagination.limit]);
+    if (page >= 1 && page <= pagination.totalPages) {
+      setPagination(prev => ({
+        ...prev,
+        page,
+      }));
+    }
+  }, [pagination.totalPages]);
 
   // Fetch a single member's details
   const [memberDetails, setMemberDetails] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState(null);
 
-  const fetchMemberDetails = useCallback(async (memberUrl) => {
-    if (!memberUrl) return;
+  const fetchMemberDetails = useCallback(async (memberId) => {
+    if (!memberId) return;
     
     try {
       setDetailsLoading(true);
       setDetailsError(null);
       
-      const data = await getMemberDetails(memberUrl);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/members/${memberId}`);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
       setMemberDetails(data);
     } catch (err) {
-      setDetailsError(handleAPIError(err, 'Failed to load member details. Please try again.'));
+      setDetailsError(err.message || 'Failed to load member details. Please try again.');
       console.error('Error fetching member details:', err);
     } finally {
       setDetailsLoading(false);
     }
   }, []);
 
-  // Fetch a member's voting history
-  const [memberVotes, setMemberVotes] = useState([]);
-  const [votesLoading, setVotesLoading] = useState(false);
-  const [votesError, setVotesError] = useState(null);
-  const [votesPagination, setVotesPagination] = useState({
-    offset: 0,
-    limit: 20,
-    hasNext: false,
-    hasPrevious: false,
-    nextUrl: null,
-    previousUrl: null,
-  });
-
-  const fetchMemberVotes = useCallback(async (memberUrl, offset = 0, limit = 20) => {
-    if (!memberUrl) return;
-    
-    try {
-      setVotesLoading(true);
-      setVotesError(null);
-      
-      const data = await getMemberVotes(memberUrl, {
-        offset,
-        limit,
-      });
-      
-      setMemberVotes(data.objects || []);
-      
-      // Update pagination information
-      const paginationData = data.pagination || {};
-      setVotesPagination({
-        offset,
-        limit,
-        hasNext: !!paginationData.next_url,
-        hasPrevious: !!paginationData.previous_url,
-        nextUrl: paginationData.next_url,
-        previousUrl: paginationData.previous_url,
-      });
-    } catch (err) {
-      setVotesError(handleAPIError(err, 'Failed to load voting history. Please try again.'));
-      console.error('Error fetching member votes:', err);
-    } finally {
-      setVotesLoading(false);
-    }
-  }, []);
-
-  // Process member data for easier use in components
-  const processedMembers = members.map(member => {
-    return {
-      id: member.url,
-      name: member.name,
-      party: member.current_party,
-      constituency: member.current_riding,
-      province: member.current_riding?.split(', ').pop(),
-      email: member.email || null,
-      phone: member.phone || null,
-      photo_url: member.image || "/api/placeholder/400/400",
-      roles: member.current_caucus_short ? [member.current_caucus_short] : [],
-      office: {
-        address: member.constituency_offices?.[0]?.postal || null,
-        phone: member.constituency_offices?.[0]?.tel || null
-      }
-    };
-  });
-
   return {
-    members: processedMembers,
-    rawMembers: members, // Also return the raw data
+    members,
     loading,
     error,
     pagination,
@@ -195,12 +130,7 @@ function useMembers({ limit = 20, initialOffset = 0, province = null, party = nu
     memberDetails,
     detailsLoading,
     detailsError,
-    fetchMemberDetails,
-    memberVotes,
-    votesLoading,
-    votesError,
-    votesPagination,
-    fetchMemberVotes,
+    fetchMemberDetails
   };
 }
 
