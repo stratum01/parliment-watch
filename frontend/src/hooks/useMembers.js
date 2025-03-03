@@ -17,7 +17,23 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     totalPages: 0,
     totalMembers: 0
   });
-
+  const transformMember = (apiMember) => {
+    return {
+      id: apiMember._id || apiMember.id || apiMember.url,
+      name: apiMember.name,
+      party: apiMember.party || apiMember.current_party,
+      constituency: apiMember.constituency || apiMember.current_riding,
+      province: apiMember.province,
+      email: apiMember.email,
+      phone: apiMember.phone,
+      photo_url: apiMember.photo_url || apiMember.image || "/api/placeholder/400/400",
+      roles: apiMember.roles || [],
+      office: {
+        address: apiMember.offices?.[0]?.address || apiMember.constituency_offices?.[0]?.postal || '',
+        phone: apiMember.offices?.[0]?.phone || apiMember.constituency_offices?.[0]?.tel || ''
+      }
+    };
+  };
   // Fetch members with current pagination
   const fetchMembers = useCallback(async () => {
     try {
@@ -32,9 +48,7 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       }
       
       const data = await response.json();
-      
-      // Update members data
-      setMembers(data.members || []);
+      setMembers((data.members || data).map(transformMember));
       
       // Update pagination information if provided by API
       if (data.pagination) {

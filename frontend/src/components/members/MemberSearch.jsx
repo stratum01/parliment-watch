@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
+import useMembers from '../../hooks/useMembers'; // Add this import
+import SearchControls from '../shared/SearchControls'; // Make sure this component exists
+
 
 const MemberSearch = ({ onMemberSelect }) => {
-  const [searchTerm, setSearchTerm] = React.useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const { members, loading } = useMembers();
 
   const filteredMembers = members.filter(member => 

@@ -13,54 +13,6 @@ import useMembers from '../../hooks/useMembers';
 import Pagination from '../shared/Pagination';
 
 
-// Hard-coded mock data for members to avoid dependency on hooks
-const mockMembers = [
-  {
-    id: "m1",
-    name: "Marco Mendicino",
-    party: "Liberal",
-    constituency: "Eglinton—Lawrence",
-    province: "ON",
-    email: "marco.mendicino@parl.gc.ca",
-    phone: "613-992-6361",
-    photo_url: "/api/placeholder/400/400",
-    roles: ["Minister of Public Safety"],
-    office: {
-      address: "511 Lawrence Avenue West, Toronto, Ontario, M6A 1A3",
-      phone: "416-781-5583"
-    }
-  },
-  {
-    id: "m2",
-    name: "Pierre Poilievre",
-    party: "Conservative",
-    constituency: "Carleton",
-    province: "ON",
-    email: "pierre.poilievre@parl.gc.ca",
-    phone: "613-992-2772",
-    photo_url: "/api/placeholder/400/400",
-    roles: ["Leader of the Official Opposition"],
-    office: {
-      address: "1139 Mill Street, Manotick, Ontario, K4M 1A5",
-      phone: "613-692-3331"
-    }
-  },
-  {
-    id: "m3",
-    name: "Jagmeet Singh",
-    party: "NDP",
-    constituency: "Burnaby South",
-    province: "BC",
-    email: "jagmeet.singh@parl.gc.ca",
-    phone: "613-995-7224",
-    photo_url: "/api/placeholder/400/400",
-    roles: ["Leader of the New Democratic Party"],
-    office: {
-      address: "4940 Kingsway, Burnaby, British Columbia, V5H 2E2",
-      phone: "604-291-8863"
-    }
-  }
-];
 
 const SimpleTabs = ({ children, defaultTab }) => {
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -152,7 +104,7 @@ const SimpleTabs = ({ children, defaultTab }) => {
                 </div>
               </div>
             ) : (
-              <SimpleMemberSearch onMemberSelect={setSelectedMember} />
+              <MemberSearch onMemberSelect={setSelectedMember} />
             )}
           </div>
         )}
