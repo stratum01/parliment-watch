@@ -34,37 +34,52 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       }
     };
   };
-  // Fetch members with current pagination
+// In useMembers.js, update the fetchMembers function:
+
   const fetchMembers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
+    
       // Use your backend API instead of direct OpenParliament calls
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/members?page=${pagination.page}&limit=${pagination.limit}`);
-      
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/members`);
+    
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
-      
+    
       const data = await response.json();
-      setMembers((data.members || data).map(transformMember));
-      
-      // Update pagination information if provided by API
-      if (data.pagination) {
-        setPagination(prev => ({
-          ...prev,
-          totalPages: data.pagination.totalPages || 1,
-          totalMembers: data.pagination.totalMembers || data.members.length
-        }));
-      }
+    
+      // Ensure we're working with an array of members  
+      // The API might return { members: [...] } or just the array directly
+      const membersArray = Array.isArray(data) ? data : (data.members || []);
+    
+      // Transform data to match the expected format
+      const formattedMembers = membersArray.map(member => ({
+        id: member._id || member.id,
+        name: member.name || '',
+        party: member.party || '',
+        constituency: member.constituency || '',
+        province: member.province || '',
+        email: member.email || '',
+        phone: member.phone || '',
+        photo_url: member.photo_url || "/api/placeholder/100/100",
+        roles: member.roles || [],
+        office: {
+          address: member.office?.address || '',
+          phone: member.office?.phone || ''
+        }
+      }));
+    
+      // Update members data
+      setMembers(formattedMembers);
     } catch (err) {
       setError(err.message || 'Failed to load members data. Please try again.');
       console.error('Error fetching members:', err);
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, pagination.limit]);
+  }, []);
 
   // Initial data fetch
   useEffect(() => {
