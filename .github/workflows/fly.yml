@@ -1,12 +1,11 @@
-name: Deploy to Fly.io
-
+name: Deploy Frontend to Fly.io
 on:
   push:
-    branches: [ main ]  # Adjust if your main branch has a different name
+    branches: [ main ]
 
 jobs:
   deploy:
-    name: Deploy app
+    name: Deploy frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
