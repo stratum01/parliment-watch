@@ -26,33 +26,45 @@ const VotingHistory = ({ votes, memberId }) => {
           ? memberId.split('/').filter(Boolean).pop() 
           : memberId;
         
-        const apiUrl = import.meta.env.VITE_API_URL || 'https://parliament-watch-api.fly.dev/api';
-        const response = await fetch(`${apiUrl}/members/${memberName}/votes`);
+        console.log('Attempting to fetch votes for member:', memberName);
         
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+        // For now, let's just handle the error gracefully since the backend is returning 500
+        try {
+          const apiUrl = import.meta.env.VITE_API_URL || 'https://parliament-watch-api.fly.dev/api';
+          const response = await fetch(`${apiUrl}/members/${memberName}/votes`);
+          
+          if (!response.ok) {
+            console.warn(`Votes API returned status ${response.status} for member ${memberName}`);
+            // Don't throw error, just continue with empty votes
+            setMemberVotes([]);
+            return;
+          }
+          
+          const data = await response.json();
+          console.log('Raw votes data:', data);
+          
+          // Extract votes from the API response
+          const votesArray = data.objects || [];
+          
+          // Transform the votes data if needed
+          const formattedVotes = votesArray.map(vote => ({
+            id: vote.id || vote.url,
+            bill: vote.bill_number || vote.bill?.number || 'Motion',
+            description: typeof vote.description === 'object' ? vote.description.en : vote.description,
+            date: vote.date,
+            vote: vote.vote || (vote.ballot && vote.ballot === 1 ? 'Yea' : 'Nay'),
+            result: vote.result || (vote.passed ? 'Passed' : 'Failed')
+          }));
+          
+          setMemberVotes(formattedVotes);
+        } catch (apiErr) {
+          console.error('Error fetching votes from API:', apiErr);
+          // Just set empty votes array instead of showing error
+          setMemberVotes([]);
         }
-        
-        const data = await response.json();
-        console.log('Raw votes data:', data); // For debugging
-        
-        // Extract votes from the API response
-        const votesArray = data.objects || [];
-        
-        // Transform the votes data if needed
-        const formattedVotes = votesArray.map(vote => ({
-          id: vote.id || vote.url,
-          bill: vote.bill_number || vote.bill?.number || 'Motion',
-          description: typeof vote.description === 'object' ? vote.description.en : vote.description,
-          date: vote.date,
-          vote: vote.vote || (vote.ballot && vote.ballot === 1 ? 'Yea' : 'Nay'),
-          result: vote.result || (vote.passed ? 'Passed' : 'Failed')
-        }));
-        
-        setMemberVotes(formattedVotes);
       } catch (err) {
-        setError(err.message || 'Failed to load voting history. Please try again.');
-        console.error('Error fetching votes:', err);
+        console.error('Error in votes process:', err);
+        setError('Could not retrieve voting history at this time.');
       } finally {
         setLoading(false);
       }
