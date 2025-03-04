@@ -14,6 +14,7 @@ const MemberProfile = ({ member }) => {
     photo_url, 
     roles, 
     office,
+    favorite_word,
     data // Raw data from the API
   } = member;
 
@@ -83,8 +84,8 @@ const MemberProfile = ({ member }) => {
   return (
     <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
       <div className="md:flex">
-        {/* Profile Photo */}
-        <div className="md:w-1/3 p-4 flex justify-center">
+        {/* Profile Photo with Favorite Word Bubble */}
+        <div className="md:w-1/3 p-4 flex justify-center relative">
           <div className="w-32 h-32 md:w-40 md:h-40 relative rounded-lg overflow-hidden">
             <img
               src={photo_url || "/api/placeholder/400/400"}
@@ -92,7 +93,24 @@ const MemberProfile = ({ member }) => {
               className="object-cover w-full h-full"
             />
           </div>
+  
+          {/* Favorite Word Speech Bubble */}
+          {data?.other_info?.favourite_word || favorite_word ? (
+            <div className="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4">
+              <div className="relative">
+                <div className="bg-blue-500 text-white rounded-lg px-3 py-2 shadow-lg text-sm font-medium">
+                  <span>"{typeof data?.other_info?.favourite_word === 'string' 
+                    ? data.other_info.favourite_word 
+                    : Array.isArray(data?.other_info?.favourite_word) 
+                      ? data.other_info.favourite_word[0] 
+                      : favorite_word}"</span>
+                </div>
+                <div className="absolute -bottom-2 left-6 transform rotate-45 w-4 h-4 bg-blue-500"></div>
+              </div>
+            </div>
+          ) : null}
         </div>
+
         
         {/* Profile Details */}
         <div className="md:w-2/3 p-4">
@@ -103,28 +121,14 @@ const MemberProfile = ({ member }) => {
             <div className="flex items-center mt-1">
               <div className={`h-3 w-3 rounded-full ${getPartyColor()} mr-2`}></div>
               <span className="text-gray-700">
-                {getPartyName() || (data && data.party) || (data && data.current_party && data.current_party.short_name && data.current_party.short_name.en) || 'MP'}
+                {party ? `${party} MP` : 'MP'}
               </span>
             </div>
   
             {/* Constituency Information */}
             <div className="mt-1 text-gray-600">
-              {getConstituency() || (data && data.constituency) || (data && data.current_riding && data.current_riding.name && data.current_riding.name.en) || ''}
-              {province && (getConstituency() || (data && data.constituency) || (data && data.current_riding && data.current_riding.name)) ? `, ${province}` : province || ''}
-            </div>
-  
-            {/* Debug Information (remove for production) */}
-            <div className="mt-2 text-xs text-gray-400 border-t pt-2">
-              <div>Raw party data: {JSON.stringify(party)}</div>
-              <div>Raw constituency data: {JSON.stringify(constituency)}</div>
-              {data && data.debug && (
-                <>
-                  <div>Raw party field: {JSON.stringify(data.debug.rawParty)}</div>
-                  <div>Raw constituency field: {JSON.stringify(data.debug.rawConstituency)}</div>
-                  <div>Raw current_party field: {JSON.stringify(data.debug.rawCurrentParty)}</div>
-                  <div>Raw current_riding field: {JSON.stringify(data.debug.rawCurrentRiding)}</div>
-                </>
-              )}
+              {constituency}
+              {province && constituency ? `, ${province}` : province || ''}
             </div>
   
             {/* Roles Information */}

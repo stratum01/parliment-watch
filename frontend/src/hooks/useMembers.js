@@ -26,48 +26,92 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       // Add the OpenParliament base URL to the image path
       photoUrl = `https://openparliament.ca${photoUrl}`;
     }
- 
+
     // Log the raw member data to see all available fields
     console.log('Complete raw member data:', JSON.stringify(apiMember));
 
     // Extract party information - handle ALL possible formats
     let partyName = '';
-    if (typeof apiMember.party === 'string' && apiMember.party) {
-      partyName = apiMember.party;
-    } else if (apiMember.current_party && apiMember.current_party.short_name &&   apiMember.current_party.short_name.en) {
-      partyName = apiMember.current_party.short_name.en;
-    } else if (apiMember.party && typeof apiMember.party === 'object' &&   apiMember.party.short_name) {
-      partyName = typeof apiMember.party.short_name === 'string' 
-        ? apiMember.party.short_name 
-        : apiMember.party.short_name?.en || '';
-    } else if (apiMember.other_info && apiMember.other_info.party) {
-      partyName = apiMember.other_info.party;
+  
+    // Check political_memberships first (most detailed structure)
+    if (apiMember.political_memberships && apiMember.political_memberships.length > 0) {
+      const membership = apiMember.political_memberships[0]; // Use the most recent membership
+      if (membership.party) {
+        if (membership.party.short_name && membership.party.short_name.en) {
+          partyName = membership.party.short_name.en;
+        } else if (membership.party.label && membership.party.label.en) {
+          partyName = membership.party.label.en;
+        }
+      }
     }
-
+  
+    // If not found, try other locations
+    if (!partyName) {
+      if (typeof apiMember.party === 'string' && apiMember.party) {
+        partyName = apiMember.party;
+      } else if (apiMember.current_party && apiMember.current_party.short_name && apiMember.current_party.short_name.en) {
+        partyName = apiMember.current_party.short_name.en;
+      } else if (apiMember.party && typeof apiMember.party === 'object' && apiMember.party.short_name) {
+        partyName = typeof apiMember.party.short_name === 'string' 
+          ? apiMember.party.short_name 
+          : apiMember.party.short_name?.en || '';
+      } else if (apiMember.other_info && apiMember.other_info.party) {
+        partyName = apiMember.other_info.party;
+      }
+    }
+ 
     // Extract constituency information - handle ALL possible formats
     let constituencyName = '';
-    if (typeof apiMember.constituency === 'string' && apiMember.constituency) {
-      constituencyName = apiMember.constituency;
-    } else if (apiMember.current_riding && apiMember.current_riding.name && apiMember.current_riding.name.en) {
-      constituencyName = apiMember.current_riding.name.en;
-    } else if (apiMember.riding && typeof apiMember.riding === 'string') {
-      constituencyName = apiMember.riding;
-    } else if (apiMember.riding && typeof apiMember.riding === 'object' && apiMember.riding.name) {
-      constituencyName = typeof apiMember.riding.name === 'string' 
-        ? apiMember.riding.name 
-        : apiMember.riding.name?.en || '';
-    } else if (apiMember.other_info && apiMember.other_info.constituency) {
-      constituencyName = apiMember.other_info.constituency;
+   
+    // Check political_memberships first (most detailed structure)
+    if (apiMember.political_memberships && apiMember.political_memberships.length > 0) {
+      const membership = apiMember.political_memberships[0]; // Use the most recent membership
+      if (membership.riding) {
+        if (membership.riding.name && membership.riding.name.en) {
+          constituencyName = membership.riding.name.en;
+        } else if (typeof membership.riding.name === 'string') {
+          constituencyName = membership.riding.name;
+        }
+      }
+    }
+  
+    // If not found, try other locations
+    if (!constituencyName) {
+      if (typeof apiMember.constituency === 'string' && apiMember.constituency) {
+        constituencyName = apiMember.constituency;
+      } else if (apiMember.current_riding && apiMember.current_riding.name && apiMember.current_riding.name.en) {
+        constituencyName = apiMember.current_riding.name.en;
+      } else if (apiMember.riding && typeof apiMember.riding === 'string') {
+        constituencyName = apiMember.riding;
+      } else if (apiMember.riding && typeof apiMember.riding === 'object' && apiMember.riding.name) {
+        constituencyName = typeof apiMember.riding.name === 'string' 
+          ? apiMember.riding.name 
+          : apiMember.riding.name?.en || '';
+      } else if (apiMember.other_info && apiMember.other_info.constituency) {
+        constituencyName = apiMember.other_info.constituency;
+      }
     }
 
     // Extract province
     let provinceCode = '';
-    if (typeof apiMember.province === 'string' && apiMember.province) {
-      provinceCode = apiMember.province;
-    } else if (apiMember.current_riding && apiMember.current_riding.province) {
-      provinceCode = apiMember.current_riding.province;
-    } else if (apiMember.riding && typeof apiMember.riding === 'object' && apiMember.riding.province) {
-      provinceCode = apiMember.riding.province;
+  
+    // Check political_memberships first
+    if (apiMember.political_memberships && apiMember.political_memberships.length > 0) {
+      const membership = apiMember.political_memberships[0]; // Use the most recent membership
+      if (membership.riding && membership.riding.province) {
+        provinceCode = membership.riding.province;
+      }
+    }
+  
+    // If not found, try other locations
+    if (!provinceCode) {
+      if (typeof apiMember.province === 'string' && apiMember.province) {
+        provinceCode = apiMember.province;
+      } else if (apiMember.current_riding && apiMember.current_riding.province) {
+        provinceCode = apiMember.current_riding.province;
+      } else if (apiMember.riding && typeof apiMember.riding === 'object' && apiMember.riding.province) {
+        provinceCode = apiMember.riding.province;
+      }
     }
 
     // Extract contact info
@@ -78,37 +122,50 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     let constituencyOfficeAddress = '';
     let constituencyOfficePhone = '';
   
-    if (apiMember.constituency_offices && apiMember.constituency_offices.length > 0) {
-      const mainOffice = apiMember.constituency_offices[0];
-      constituencyOfficeAddress = mainOffice.postal || mainOffice.address || '';
-      constituencyOfficePhone = mainOffice.tel || mainOffice.phone || '';
-    } else if (apiMember.other_info && apiMember.other_info.constituency_offices) {
+    // Check constituency_offices in other_info
+    if (apiMember.other_info && apiMember.other_info.constituency_offices) {
       if (typeof apiMember.other_info.constituency_offices === 'string') {
         constituencyOfficeAddress = apiMember.other_info.constituency_offices;
+      } else if (Array.isArray(apiMember.other_info.constituency_offices) && apiMember.other_info.constituency_offices.length > 0) {
+        constituencyOfficeAddress = apiMember.other_info.constituency_offices[0];
       }
     }
+   
+    // Check main office field
+    if (apiMember.other_info && apiMember.other_info.main_office) {
+      constituencyOfficeAddress = apiMember.other_info.main_office;
+    }
 
-    // Extract all metadata from other_info to ensure we don't miss anything
-    const otherInfo = apiMember.other_info || {};
-  
     // Build a proper constituency office object
     let constituencyOffice = {
       address: constituencyOfficeAddress,
       phone: constituencyOfficePhone
     };
 
-    // If we have constituency_offices field as a structured field, extract it properly
-    const constituency_offices = [];
-    if (apiMember.other_info && apiMember.other_info.constituency_offices) {
-      if (typeof apiMember.other_info.constituency_offices === 'string') {
-        constituency_offices.push(apiMember.other_info.constituency_offices);
-      } else if (Array.isArray(apiMember.other_info.constituency_offices)) {
-        constituency_offices.push(...apiMember.other_info.constituency_offices);
+    // Extract Twitter handle from multiple possible locations
+    let twitterHandle = '';
+    if (apiMember.twitter) {
+      twitterHandle = apiMember.twitter;
+    } else if (apiMember.other_info && apiMember.other_info.twitter_id) {
+      twitterHandle = apiMember.other_info.twitter_id;
+    } else if (apiMember.other_info && apiMember.other_info.twitter) {
+      twitterHandle = apiMember.other_info.twitter;
+    }
+   
+    let favoriteWord = '';
+    if (apiMember.other_info && apiMember.other_info.favourite_word) {
+      if (typeof apiMember.other_info.favourite_word === 'string') {
+        favoriteWord = apiMember.other_info.favourite_word;
+      } else if (Array.isArray(apiMember.other_info.favourite_word) && apiMember.other_info.favourite_word.length > 0) {
+        favoriteWord = apiMember.other_info.favourite_word[0];
       }
     }
 
     // Log what we found for debugging
     console.log(`Member: ${apiMember.name}, Party: "${partyName}", Constituency: "${constituencyName}", Province: "${provinceCode}"`);
+  
+    // Create a clean URL to send back to our API
+    const cleanedUrl = apiMember.url || '';
 
     return {
       id: apiMember.url,
@@ -116,8 +173,8 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       party: partyName || 'Unknown Party',
       constituency: constituencyName || 'Unknown Constituency',
       province: provinceCode || '',
-      email: email,
-      phone: phone,
+      email: apiMember.email || '',
+      phone: apiMember.voice || phone || '',
       photo_url: photoUrl || "/api/placeholder/400/400",
       roles: apiMember.roles || [],
       office: {
@@ -125,9 +182,9 @@ function useMembers({ limit = 20, page = 1 } = {}) {
         phone: apiMember.offices?.[0]?.tel || ''
       },
       constituency_office: constituencyOffice,
-      constituency_offices: constituency_offices,
-      twitter: apiMember.twitter || otherInfo.twitter || '',
-      wikipedia_id: apiMember.wikipedia_id || otherInfo.wikipedia_id || '',
+      twitter: twitterHandle,
+      favorite_word: favoriteWord,
+      wikipedia_id: apiMember.wikipedia_id || apiMember.other_info?.wikipedia_id || '',
       // Add the raw data for fields we might have missed
       data: apiMember,
       // For debug purposes only
@@ -136,7 +193,8 @@ function useMembers({ limit = 20, page = 1 } = {}) {
         rawConstituency: apiMember.constituency,
         rawCurrentParty: apiMember.current_party,
         rawCurrentRiding: apiMember.current_riding,
-        rawOtherInfo: otherInfo
+        politicalMemberships: apiMember.political_memberships || [],
+        otherInfo: apiMember.other_info || {}
       }
     };
   };
