@@ -11,7 +11,8 @@ import useBills from '../../hooks/useBills';
 import useMembers from '../../hooks/useMembers';
 // Import the pagination component
 import Pagination from '../shared/Pagination';
-
+// Import the debug tools
+import { ApiDebugPanel } from '../../hooks/useApiDebug';
 
 
 const SimpleTabs = ({ children, defaultTab }) => {
@@ -119,6 +120,8 @@ const ParliamentDashboard = () => {
   const [votes, setVotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Add state for debug panel
+  const [showDebugger, setShowDebugger] = useState(false);
 
   // Directly fetch mock votes data
   useEffect(() => {
@@ -277,6 +280,13 @@ const ParliamentDashboard = () => {
           </div>
         </div>
       </div>
+            {/* Add debug button - fixed position at bottom right */}
+      <button 
+        onClick={() => setShowDebugger(true)}
+        className="fixed bottom-4 right-4 bg-gray-800 text-white px-3 py-1 rounded-md text-sm z-10"
+      >
+        Debug API
+      </button>
     </div>
   );
 };

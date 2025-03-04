@@ -17,62 +17,61 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     totalPages: 0,
     totalMembers: 0
   });
+
+  // Transform OpenParliament API data to our frontend format
   const transformMember = (apiMember) => {
     return {
-      id: apiMember._id || apiMember.id || apiMember.url,
+      id: apiMember.url,
       name: apiMember.name,
-      party: apiMember.party || apiMember.current_party,
-      constituency: apiMember.constituency || apiMember.current_riding,
-      province: apiMember.province,
-      email: apiMember.email,
-      phone: apiMember.phone,
-      photo_url: apiMember.photo_url || apiMember.image || "/api/placeholder/400/400",
+      party: apiMember.current_party?.short_name?.en || '',
+      constituency: apiMember.current_riding?.name?.en || '',
+      province: apiMember.current_riding?.province || '',
+      email: apiMember.email || '',
+      phone: apiMember.phone || '',
+      photo_url: apiMember.image || "/api/placeholder/400/400",
       roles: apiMember.roles || [],
       office: {
-        address: apiMember.offices?.[0]?.address || apiMember.constituency_offices?.[0]?.postal || '',
-        phone: apiMember.offices?.[0]?.phone || apiMember.constituency_offices?.[0]?.tel || ''
+        address: apiMember.offices?.[0]?.postal || '',
+        phone: apiMember.offices?.[0]?.tel || ''
       }
     };
   };
-// In useMembers.js, update the fetchMembers function:
 
   const fetchMembers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
     
-      // Use your backend API instead of direct OpenParliament calls
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/members`);
+      // Use the API URL from .env
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://parliament-watch-api.fly.dev/api';
+      const response = await fetch(`${apiUrl}/members`);
     
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
     
       const data = await response.json();
+      console.log('Raw API response:', data); // For debugging
     
-      // Ensure we're working with an array of members  
-      // The API might return { members: [...] } or just the array directly
-      const membersArray = Array.isArray(data) ? data : (data.members || []);
+      // Check if the data contains an 'objects' array (typical OpenParliament format)
+      const membersArray = data.objects || [];
     
       // Transform data to match the expected format
-      const formattedMembers = membersArray.map(member => ({
-        id: member._id || member.id,
-        name: member.name || '',
-        party: member.party || '',
-        constituency: member.constituency || '',
-        province: member.province || '',
-        email: member.email || '',
-        phone: member.phone || '',
-        photo_url: member.photo_url || "/api/placeholder/100/100",
-        roles: member.roles || [],
-        office: {
-          address: member.office?.address || '',
-          phone: member.office?.phone || ''
-        }
-      }));
+      const formattedMembers = membersArray.map(transformMember);
+      console.log('Transformed members:', formattedMembers); // For debugging
     
       // Update members data
       setMembers(formattedMembers);
+      
+      // Update pagination if available
+      if (data.pagination) {
+        setPagination({
+          page: Math.floor(data.pagination.offset / data.pagination.limit) + 1,
+          limit: data.pagination.limit,
+          totalPages: Math.ceil(data.pagination.count / data.pagination.limit) || 1,
+          totalMembers: data.pagination.count || membersArray.length
+        });
+      }
     } catch (err) {
       setError(err.message || 'Failed to load members data. Please try again.');
       console.error('Error fetching members:', err);
@@ -131,14 +130,24 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       setDetailsLoading(true);
       setDetailsError(null);
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/members/${memberId}`);
+      // Extract member name from URL if it's a full URL
+      const memberName = memberId.includes('/') 
+        ? memberId.split('/').filter(Boolean).pop() 
+        : memberId;
+      
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://parliament-watch-api.fly.dev/api';
+      const response = await fetch(`${apiUrl}/members/${memberName}`);
       
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
       
       const data = await response.json();
-      setMemberDetails(data);
+      console.log('Raw member details:', data); // For debugging
+      
+      // Transform the detailed member data
+      const formattedMember = transformMember(data);
+      setMemberDetails(formattedMember);
     } catch (err) {
       setDetailsError(err.message || 'Failed to load member details. Please try again.');
       console.error('Error fetching member details:', err);

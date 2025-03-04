@@ -1,10 +1,83 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const VotingHistory = ({ votes }) => {
+const VotingHistory = ({ votes, memberId }) => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [memberVotes, setMemberVotes] = useState([]);
   const itemsPerPage = 5;
   
-  if (!votes || votes.length === 0) {
+  // Fetch votes if they're not provided directly
+  useEffect(() => {
+    const fetchVotes = async () => {
+      if (votes) {
+        setMemberVotes(votes);
+        return;
+      }
+      
+      if (!memberId) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Extract member name from URL if it's a full URL
+        const memberName = memberId.includes('/') 
+          ? memberId.split('/').filter(Boolean).pop() 
+          : memberId;
+        
+        const apiUrl = import.meta.env.VITE_API_URL || 'https://parliament-watch-api.fly.dev/api';
+        const response = await fetch(`${apiUrl}/members/${memberName}/votes`);
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Raw votes data:', data); // For debugging
+        
+        // Extract votes from the API response
+        const votesArray = data.objects || [];
+        
+        // Transform the votes data if needed
+        const formattedVotes = votesArray.map(vote => ({
+          id: vote.id || vote.url,
+          bill: vote.bill_number || vote.bill?.number || 'Motion',
+          description: typeof vote.description === 'object' ? vote.description.en : vote.description,
+          date: vote.date,
+          vote: vote.vote || (vote.ballot && vote.ballot === 1 ? 'Yea' : 'Nay'),
+          result: vote.result || (vote.passed ? 'Passed' : 'Failed')
+        }));
+        
+        setMemberVotes(formattedVotes);
+      } catch (err) {
+        setError(err.message || 'Failed to load voting history. Please try again.');
+        console.error('Error fetching votes:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchVotes();
+  }, [votes, memberId]);
+  
+  if (loading) {
+    return (
+      <div className="bg-white border rounded-lg shadow-sm p-6 flex justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="bg-white border rounded-lg shadow-sm p-6 text-center">
+        <p className="text-red-600">{error}</p>
+      </div>
+    );
+  }
+  
+  if (!memberVotes || memberVotes.length === 0) {
     return (
       <div className="bg-white border rounded-lg shadow-sm p-6 text-center">
         <p className="text-gray-600">No voting history available for this member.</p>
@@ -13,10 +86,10 @@ const VotingHistory = ({ votes }) => {
   }
 
   // Calculate pagination
-  const totalPages = Math.ceil(votes.length / itemsPerPage);
+  const totalPages = Math.ceil(memberVotes.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = votes.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = memberVotes.slice(indexOfFirstItem, indexOfLastItem);
 
   // Handle pagination
   const handlePreviousPage = () => {
@@ -39,7 +112,7 @@ const VotingHistory = ({ votes }) => {
       
       <div className="divide-y">
         {currentItems.map((vote, index) => (
-          <div key={index} className="p-4 hover:bg-gray-50">
+          <div key={vote.id || index} className="p-4 hover:bg-gray-50">
             <div className="flex justify-between items-start mb-2">
               <div>
                 <h3 className="font-medium">{vote.bill || 'Motion'}</h3>
