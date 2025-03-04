@@ -104,7 +104,7 @@ const MemberProfile = ({ member }) => {
         </div>
         {/* Favorite Word Speech Bubble */}
         {data?.other_info?.favourite_word || favorite_word ? (
-          <div className="absolute top-2 left-3>
+          <div className="absolute top-2 left-3">
             <div className="relative z-10">
               <div className="bg-blue-500 text-white rounded-lg px-3 py-2 shadow-lg text-sm font-medium">
                 <span>"{typeof data?.other_info?.favourite_word === 'string' 
