@@ -4,7 +4,6 @@ import '../../index.css';
 import VoteCard from './VoteCard';
 import { BillsList, BillStatusOverview } from '../bills';
 import { MemberProfile, MemberSearch, VotingHistory } from '../members';
-import { getMemberVotingHistory } from '../../lib/memberVotesData';
 // Import our custom hooks for API data
 import useVotes from '../../hooks/useVotes';
 import useBills from '../../hooks/useBills';
@@ -12,42 +11,13 @@ import useMembers from '../../hooks/useMembers';
 // Import the pagination component
 import Pagination from '../shared/Pagination';
 // Import the debug tools
-import { ApiDebugPanel } from '../../hooks/ApiDebugPanel';
+import ApiDebugPanel from '../../hooks/ApiDebugPanel';
 
 
 const SimpleTabs = ({ children, defaultTab }) => {
   const [activeTab, setActiveTab] = useState(defaultTab);
   // Make sure selectedMember is scoped to this component, not referenced from parent
   const [selectedMember, setSelectedMember] = useState(null);
-  
-  // Define a simple MemberSearch component inline
-  const SimpleMemberSearch = ({ onMemberSelect }) => {
-    return (
-      <div className="bg-white border rounded-lg p-4">
-        <h2 className="text-lg font-medium mb-4">Members of Parliament</h2>
-        <p className="text-gray-500 mb-6">Select a member to view their profile and voting history.</p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {mockMembers.map(member => (
-            <div
-              key={member.id}
-              className="border rounded-lg p-4 hover:border-blue-300 cursor-pointer"
-              onClick={() => onMemberSelect(member)}
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
-                <div>
-                  <h3 className="font-medium">{member.name}</h3>
-                  <p className="text-sm text-gray-500">{member.party}</p>
-                  <p className="text-sm text-gray-500">{member.constituency}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
   
   return (
     <div className="bg-white rounded-lg shadow p-4">
@@ -86,7 +56,6 @@ const SimpleTabs = ({ children, defaultTab }) => {
           </div>
         )}
         
-
         {activeTab === 'members' && (
           <div className="space-y-6">
             {selectedMember ? (
@@ -102,7 +71,7 @@ const SimpleTabs = ({ children, defaultTab }) => {
                 </button>
                 <div className="grid grid-cols-1 gap-6">
                   <MemberProfile member={selectedMember} />
-                  {/* Pass memberId to VotingHistory instead of using getMemberVotingHistory */}
+                  {/* Pass memberId to VotingHistory */}
                   <VotingHistory memberId={selectedMember.id} />
                 </div>
               </div>
@@ -119,98 +88,26 @@ const SimpleTabs = ({ children, defaultTab }) => {
 // Main Dashboard Component
 const ParliamentDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [votes, setVotes] = useState([]);
+  const { votes, loading: votesLoading, error: votesError } = useVotes();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   // Add state for debug panel
   const [showDebugger, setShowDebugger] = useState(false);
 
-  // Directly fetch mock votes data
+  // Use real votes data from useVotes hook
   useEffect(() => {
-    const fetchVotes = async () => {
-      try {
-        setLoading(true);
-        
-        // Mock data - directly included to avoid import issues
-        const mockVotes = [
-          {
-            id: "v1",
-            number: 928,
-            date: "2024-12-17",
-            description: {
-              en: "Motion on International Trade Agreement with United States",
-              fr: "Motion sur l'accord commercial international avec les États-Unis"
-            },
-            result: "Passed",
-            yea_total: 177,
-            nay_total: 140,
-            paired_total: 0,
-            bill_url: null
-          },
-          {
-            id: "v2",
-            number: 927,
-            date: "2024-12-17",
-            description: {
-              en: "Economic Statement Implementation Act",
-              fr: "Loi d'exécution de l'énoncé économique"
-            },
-            result: "Passed",
-            yea_total: 296,
-            nay_total: 17,
-            paired_total: 0,
-            bill_url: "/bills/44-1/C-123/"
-          },
-          {
-            id: "v3",
-            number: 926,
-            date: "2024-12-16",
-            description: {
-              en: "Motion on Softwood Lumber Industry Support",
-              fr: "Motion sur le soutien à l'industrie du bois d'oeuvre"
-            },
-            result: "Failed",
-            yea_total: 144,
-            nay_total: 167,
-            paired_total: 0,
-            bill_url: "/bills/44-1/C-45/"
-          },
-          {
-            id: "v4",
-            number: 925,
-            date: "2024-12-15",
-            description: {
-              en: "Climate Action Implementation Bill",
-              fr: "Projet de loi sur la mise en œuvre de l'action climatique"
-            },
-            result: "Passed",
-            yea_total: 189,
-            nay_total: 132,
-            paired_total: 0,
-            bill_url: null
-          }
-        ];
-        
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        setVotes(mockVotes);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching votes:', err);
-        setError('Failed to load votes data.');
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (!votesLoading) {
+      setLoading(false);
+    }
+    if (votesError) {
+      setError(votesError);
+    }
+  }, [votesLoading, votesError]);
 
-    fetchVotes();
-  }, []);
-
-  const filteredVotes = votes.filter(vote => 
+  const filteredVotes = votes?.filter(vote => 
     vote.description?.en?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    String(vote.description).toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    String(vote.description || '').toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
 
   return (
     <div className="max-w-6xl mx-auto px-4">
@@ -282,7 +179,11 @@ const ParliamentDashboard = () => {
           </div>
         </div>
       </div>
-            {/* Add debug button - fixed position at bottom right */}
+      
+      {/* Debug panel and button */}
+      {showDebugger && <ApiDebugPanel onClose={() => setShowDebugger(false)} />}
+      
+      {/* Add debug button - fixed position at bottom right */}
       <button 
         onClick={() => setShowDebugger(true)}
         className="fixed bottom-4 right-4 bg-gray-800 text-white px-3 py-1 rounded-md text-sm z-10"

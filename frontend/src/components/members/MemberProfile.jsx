@@ -104,8 +104,8 @@ const MemberProfile = ({ member }) => {
         </div>
         {/* Favorite Word Speech Bubble */}
         {data?.other_info?.favourite_word || favorite_word ? (
-          <div className="absolute top-0 left-0 transform -translate-x-1/4 -translate-y-1/4">
-            <div className="relative">
+          <div className="absolute top-2 left-3>
+            <div className="relative z-10">
               <div className="bg-blue-500 text-white rounded-lg px-3 py-2 shadow-lg text-sm font-medium">
                 <span>"{typeof data?.other_info?.favourite_word === 'string' 
                   ? data.other_info.favourite_word 
@@ -113,7 +113,7 @@ const MemberProfile = ({ member }) => {
                     ? data.other_info.favourite_word[0] 
                     : favorite_word}"</span>
               </div>
-              <div className="absolute -bottom-1.5 right-5 transform rotate-45 w-3 h-3 bg-blue-500"></div>
+              <div className="absolute bottom-0 left-2 transform translate-y-1/2 rotate-45 w-3 h-3 bg-blue-500"></div>
             </div>
           </div>
         ) : null}  
