@@ -26,42 +26,80 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       // Add the OpenParliament base URL to the image path
       photoUrl = `https://openparliament.ca${photoUrl}`;
     }
+ 
+    // Log the raw member data to see all available fields
+    console.log('Complete raw member data:', JSON.stringify(apiMember));
 
-    // Extract party information - handle various formats
+    // Extract party information - handle ALL possible formats
     let partyName = '';
-    if (typeof apiMember.party === 'string') {
+    if (typeof apiMember.party === 'string' && apiMember.party) {
       partyName = apiMember.party;
-    } else if (apiMember.current_party && apiMember.current_party.short_name && apiMember.current_party.short_name.en) {
+    } else if (apiMember.current_party && apiMember.current_party.short_name &&   apiMember.current_party.short_name.en) {
       partyName = apiMember.current_party.short_name.en;
+    } else if (apiMember.party && typeof apiMember.party === 'object' &&   apiMember.party.short_name) {
+      partyName = typeof apiMember.party.short_name === 'string' 
+        ? apiMember.party.short_name 
+        : apiMember.party.short_name?.en || '';
+    } else if (apiMember.other_info && apiMember.other_info.party) {
+      partyName = apiMember.other_info.party;
     }
 
-    // Extract constituency information - handle various formats
+    // Extract constituency information - handle ALL possible formats
     let constituencyName = '';
-    if (typeof apiMember.constituency === 'string') {
+    if (typeof apiMember.constituency === 'string' && apiMember.constituency) {
       constituencyName = apiMember.constituency;
     } else if (apiMember.current_riding && apiMember.current_riding.name && apiMember.current_riding.name.en) {
       constituencyName = apiMember.current_riding.name.en;
+    } else if (apiMember.riding && typeof apiMember.riding === 'string') {
+      constituencyName = apiMember.riding;
+    } else if (apiMember.riding && typeof apiMember.riding === 'object' && apiMember.riding.name) {
+      constituencyName = typeof apiMember.riding.name === 'string' 
+        ? apiMember.riding.name 
+        : apiMember.riding.name?.en || '';
+    } else if (apiMember.other_info && apiMember.other_info.constituency) {
+      constituencyName = apiMember.other_info.constituency;
     }
 
     // Extract province
     let provinceCode = '';
-    if (typeof apiMember.province === 'string') {
+    if (typeof apiMember.province === 'string' && apiMember.province) {
       provinceCode = apiMember.province;
     } else if (apiMember.current_riding && apiMember.current_riding.province) {
       provinceCode = apiMember.current_riding.province;
+    } else if (apiMember.riding && typeof apiMember.riding === 'object' && apiMember.riding.province) {
+      provinceCode = apiMember.riding.province;
     }
 
     // Extract contact info
     const email = apiMember.email || '';
     const phone = apiMember.voice || apiMember.phone || '';
 
-    // Extract social media handles
-    const twitter = apiMember.twitter || '';
+    // Extract constituency office details using multiple possible paths
+    let constituencyOfficeAddress = '';
+    let constituencyOfficePhone = '';
+  
+    if (apiMember.constituency_offices && apiMember.constituency_offices.length > 0) {
+      const mainOffice = apiMember.constituency_offices[0];
+      constituencyOfficeAddress = mainOffice.postal || mainOffice.address || '';
+      constituencyOfficePhone = mainOffice.tel || mainOffice.phone || '';
+    } else if (apiMember.other_info && apiMember.other_info.constituency_offices) {
+      if (typeof apiMember.other_info.constituency_offices === 'string') {
+        constituencyOfficeAddress = apiMember.other_info.constituency_offices;
+      }
+    }
 
-    // Extract constituency offices
+    // Extract all metadata from other_info to ensure we don't miss anything
+    const otherInfo = apiMember.other_info || {};
+  
+    // Build a proper constituency office object
+    let constituencyOffice = {
+      address: constituencyOfficeAddress,
+      phone: constituencyOfficePhone
+    };
+
+    // If we have constituency_offices field as a structured field, extract it properly
     const constituency_offices = [];
     if (apiMember.other_info && apiMember.other_info.constituency_offices) {
-      // If it's a string, try to parse it
       if (typeof apiMember.other_info.constituency_offices === 'string') {
         constituency_offices.push(apiMember.other_info.constituency_offices);
       } else if (Array.isArray(apiMember.other_info.constituency_offices)) {
@@ -70,14 +108,14 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     }
 
     // Log what we found for debugging
-    console.log(`Member: ${apiMember.name}, Party: ${partyName}, Constituency: ${constituencyName}`);
+    console.log(`Member: ${apiMember.name}, Party: "${partyName}", Constituency: "${constituencyName}", Province: "${provinceCode}"`);
 
     return {
       id: apiMember.url,
       name: apiMember.name || '',
-      party: partyName,
-      constituency: constituencyName,
-      province: provinceCode,
+      party: partyName || 'Unknown Party',
+      constituency: constituencyName || 'Unknown Constituency',
+      province: provinceCode || '',
       email: email,
       phone: phone,
       photo_url: photoUrl || "/api/placeholder/400/400",
@@ -86,12 +124,20 @@ function useMembers({ limit = 20, page = 1 } = {}) {
         address: apiMember.offices?.[0]?.postal || '',
         phone: apiMember.offices?.[0]?.tel || ''
       },
-      // Add new fields
-      twitter: twitter,
+      constituency_office: constituencyOffice,
       constituency_offices: constituency_offices,
-      wikipedia_id: apiMember.wikipedia_id || '',
+      twitter: apiMember.twitter || otherInfo.twitter || '',
+      wikipedia_id: apiMember.wikipedia_id || otherInfo.wikipedia_id || '',
       // Add the raw data for fields we might have missed
-      data: apiMember
+      data: apiMember,
+      // For debug purposes only
+      debug: {
+        rawParty: apiMember.party,
+        rawConstituency: apiMember.constituency,
+        rawCurrentParty: apiMember.current_party,
+        rawCurrentRiding: apiMember.current_riding,
+        rawOtherInfo: otherInfo
+      }
     };
   };
 

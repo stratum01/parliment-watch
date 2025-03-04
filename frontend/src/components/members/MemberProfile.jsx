@@ -96,41 +96,52 @@ const MemberProfile = ({ member }) => {
         
         {/* Profile Details */}
         <div className="md:w-2/3 p-4">
-        <div className="flex flex-col mb-4">
-          <h2 className="text-2xl font-bold">{name}</h2>
-          <div className="flex items-center mt-1">
-            <div className={`h-3 w-3 rounded-full ${getPartyColor()} mr-2`}></div>
-            <span className="text-gray-700">
-            {getPartyName() ? `${getPartyName()} MP` : 'MP'}
-            </span>
-        </div>
-        <div className="mt-1 text-gray-600">
-            {getConstituency() && province
-            ? `${getConstituency()}, ${province}`
-            : getConstituency() || province || ''}
-        </div>
-
-        {/* Add debugging if needed */}
-        <div className="mt-2 text-xs text-gray-400">
-            Raw party: {JSON.stringify(party)}
-            Raw constituency: {JSON.stringify(constituency)}
-        </div>
-
-
-          {roles && roles.length > 0 && (
-            <div className="mt-3">
-            <h3 className="text-sm font-medium text-gray-700">Roles:</h3>
-            <ul className="mt-1 text-sm text-gray-600">
-                {roles.map((role, index) => (
-                <li key={index} className="flex items-start">
-                    <span className="mr-2">•</span>
-                    <span>{role}</span>
-                </li>
-                ))}
-            </ul>
+          <div className="flex flex-col mb-4">
+            <h2 className="text-2xl font-bold">{name}</h2>
+  
+            {/* Party Information */}
+            <div className="flex items-center mt-1">
+              <div className={`h-3 w-3 rounded-full ${getPartyColor()} mr-2`}></div>
+              <span className="text-gray-700">
+                {getPartyName() || (data && data.party) || (data && data.current_party && data.current_party.short_name && data.current_party.short_name.en) || 'MP'}
+              </span>
             </div>
-        )}
-        </div>
+  
+            {/* Constituency Information */}
+            <div className="mt-1 text-gray-600">
+              {getConstituency() || (data && data.constituency) || (data && data.current_riding && data.current_riding.name && data.current_riding.name.en) || ''}
+              {province && (getConstituency() || (data && data.constituency) || (data && data.current_riding && data.current_riding.name)) ? `, ${province}` : province || ''}
+            </div>
+  
+            {/* Debug Information (remove for production) */}
+            <div className="mt-2 text-xs text-gray-400 border-t pt-2">
+              <div>Raw party data: {JSON.stringify(party)}</div>
+              <div>Raw constituency data: {JSON.stringify(constituency)}</div>
+              {data && data.debug && (
+                <>
+                  <div>Raw party field: {JSON.stringify(data.debug.rawParty)}</div>
+                  <div>Raw constituency field: {JSON.stringify(data.debug.rawConstituency)}</div>
+                  <div>Raw current_party field: {JSON.stringify(data.debug.rawCurrentParty)}</div>
+                  <div>Raw current_riding field: {JSON.stringify(data.debug.rawCurrentRiding)}</div>
+                </>
+              )}
+            </div>
+  
+            {/* Roles Information */}
+            {roles && roles.length > 0 && (
+              <div className="mt-3">
+                <h3 className="text-sm font-medium text-gray-700">Roles:</h3>
+                <ul className="mt-1 text-sm text-gray-600">
+                  {roles.map((role, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="mr-2">•</span>
+                      <span>{role}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
           <div className="border-t pt-4">
             <h3 className="text-sm font-medium text-gray-700 mb-2">Contact Information:</h3>
             <div className="grid grid-cols-1 gap-2 text-sm">
