@@ -22,7 +22,7 @@ const FavoriteWordBubble = ({ favoriteWord, partyColor }) => {
     <div style={{
       position: 'absolute',
       top: '15px',
-      left: '10px',
+      left: '-110px',
       zIndex: 10
     }}>
       <div style={{ position: 'relative', maxWidth: '120px' }}>
