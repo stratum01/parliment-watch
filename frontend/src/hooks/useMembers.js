@@ -30,22 +30,53 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     // Log the raw member data to see all available fields
     console.log('Complete raw member data:', JSON.stringify(apiMember));
 
-    // Extract party information - handle ALL possible formats
+    // Extract party information from political_memberships
     let partyName = '';
-  
-    // Check political_memberships first (most detailed structure)
+
+    // First check for political_memberships
     if (apiMember.political_memberships && apiMember.political_memberships.length > 0) {
-      const membership = apiMember.political_memberships[0]; // Use the most recent membership
-      if (membership.party) {
-        if (membership.party.short_name && membership.party.short_name.en) {
-          partyName = membership.party.short_name.en;
-        } else if (membership.party.label && membership.party.label.en) {
-          partyName = membership.party.label.en;
+      // Loop through memberships to find valid party info
+      for (const membership of apiMember.political_memberships) {
+        if (membership.party) {
+          // Try label first, then short_name
+          if (membership.party.label) {
+            if (typeof membership.party.label === 'string') {
+              partyName = membership.party.label;
+              break;
+            } else if (membership.party.label.en) {
+              partyName = membership.party.label.en;
+              break;
+            }
+          }
+      
+          // Try short_name
+          if (!partyName && membership.party.short_name) {
+            if (typeof membership.party.short_name === 'string') {
+              partyName = membership.party.short_name;
+              break;
+            } else if (membership.party.short_name.en) {
+              partyName = membership.party.short_name.en;
+              break;
+            }
+          }
         }
       }
     }
-  
-    // If not found, try other locations
+
+    // If party is still not found, check labels directly in memberships
+    if (!partyName && apiMember.political_memberships &&     apiMember.political_memberships.length > 0) {
+      for (const membership of apiMember.political_memberships) {
+        if (membership.label && typeof membership.label === 'string' && membership.label.includes('MP for')) {
+          const partyMatch = membership.label.match(/Conservative|Liberal|NDP|Green|Bloc/);
+          if (partyMatch) {
+            partyName = partyMatch[0];
+            break;
+          }
+        }
+      }
+    }
+
+    // Extract party information - handle ALL other possible formats if not found
     if (!partyName) {
       if (typeof apiMember.party === 'string' && apiMember.party) {
         partyName = apiMember.party;
@@ -59,23 +90,38 @@ function useMembers({ limit = 20, page = 1 } = {}) {
         partyName = apiMember.other_info.party;
       }
     }
- 
-    // Extract constituency information - handle ALL possible formats
+
+    // Extract constituency information from memberships
     let constituencyName = '';
-   
-    // Check political_memberships first (most detailed structure)
+
+    // First check for political_memberships
     if (apiMember.political_memberships && apiMember.political_memberships.length > 0) {
-      const membership = apiMember.political_memberships[0]; // Use the most recent membership
-      if (membership.riding) {
-        if (membership.riding.name && membership.riding.name.en) {
-          constituencyName = membership.riding.name.en;
-        } else if (typeof membership.riding.name === 'string') {
-          constituencyName = membership.riding.name;
+      // Loop through memberships to find valid riding info
+      for (const membership of apiMember.political_memberships) {
+        if (membership.riding) {
+          if (membership.riding.name) {
+            if (typeof membership.riding.name === 'string') {
+              constituencyName = membership.riding.name;
+              break;
+            } else if (membership.riding.name.en) {
+              constituencyName = membership.riding.name.en;
+              break;
+            }
+          }
+        }
+    
+        // Try extracting from label
+        if (!constituencyName && membership.label && typeof membership.label === 'string') {
+          const match = membership.label.match(/MP for (.+?)(?:$|\))/);
+          if (match && match[1]) {
+            constituencyName = match[1].trim();
+            break;
+          }
         }
       }
     }
-  
-    // If not found, try other locations
+
+    // Extract constituency information - handle ALL other possible formats if not found
     if (!constituencyName) {
       if (typeof apiMember.constituency === 'string' && apiMember.constituency) {
         constituencyName = apiMember.constituency;
@@ -91,6 +137,10 @@ function useMembers({ limit = 20, page = 1 } = {}) {
         constituencyName = apiMember.other_info.constituency;
       }
     }
+
+    // Also check for "energy" or other buttons that might appear
+    const energyTag = apiMember.other_info?.wordcloud_id === 'energy';
+    console.log(`Member: ${apiMember.name}, Party: "${partyName}", Constituency: "${constituencyName}", Energy: ${energyTag}`);
 
     // Extract province
     let provinceCode = '';
