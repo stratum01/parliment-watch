@@ -111,12 +111,11 @@ const MemberProfile = ({ member }) => {
         </div>
 
         {/* Add debugging if needed */}
-        {/*
         <div className="mt-2 text-xs text-gray-400">
             Raw party: {JSON.stringify(party)}
             Raw constituency: {JSON.stringify(constituency)}
         </div>
-        */}
+
 
           {roles && roles.length > 0 && (
             <div className="mt-3">
