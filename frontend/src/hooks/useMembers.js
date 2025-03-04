@@ -26,31 +26,58 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       // Add the OpenParliament base URL to the image path
       photoUrl = `https://openparliament.ca${photoUrl}`;
     }
-  
+
+    // Extract party information - handle various formats
+    let partyName = '';
+    if (typeof apiMember.party === 'string') {
+      partyName = apiMember.party;
+    } else if (apiMember.current_party && apiMember.current_party.short_name && apiMember.current_party.short_name.en) {
+      partyName = apiMember.current_party.short_name.en;
+    }
+
+    // Extract constituency information - handle various formats
+    let constituencyName = '';
+    if (typeof apiMember.constituency === 'string') {
+      constituencyName = apiMember.constituency;
+    } else if (apiMember.current_riding && apiMember.current_riding.name && apiMember.current_riding.name.en) {
+      constituencyName = apiMember.current_riding.name.en;
+    }
+
+    // Extract province
+    let provinceCode = '';
+    if (typeof apiMember.province === 'string') {
+      provinceCode = apiMember.province;
+    } else if (apiMember.current_riding && apiMember.current_riding.province) {
+      provinceCode = apiMember.current_riding.province;
+    }
+
     // Extract contact info
     const email = apiMember.email || '';
     const phone = apiMember.voice || apiMember.phone || '';
-  
+
     // Extract social media handles
     const twitter = apiMember.twitter || '';
-  
+
     // Extract constituency offices
     const constituency_offices = [];
     if (apiMember.other_info && apiMember.other_info.constituency_offices) {
-     // If it's a string, try to parse it
+      // If it's a string, try to parse it
       if (typeof apiMember.other_info.constituency_offices === 'string') {
         constituency_offices.push(apiMember.other_info.constituency_offices);
       } else if (Array.isArray(apiMember.other_info.constituency_offices)) {
         constituency_offices.push(...apiMember.other_info.constituency_offices);
       }
     }
-  
+
+    // Log what we found for debugging
+    console.log(`Member: ${apiMember.name}, Party: ${partyName}, Constituency: ${constituencyName}`);
+
     return {
       id: apiMember.url,
-      name: apiMember.name,
-      party: apiMember.current_party?.short_name?.en || '',
-      constituency: apiMember.current_riding?.name?.en || '',
-      province: apiMember.current_riding?.province || '',
+      name: apiMember.name || '',
+      party: partyName,
+      constituency: constituencyName,
+      province: provinceCode,
       email: email,
       phone: phone,
       photo_url: photoUrl || "/api/placeholder/400/400",

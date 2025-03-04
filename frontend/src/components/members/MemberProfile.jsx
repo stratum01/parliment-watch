@@ -58,14 +58,26 @@ const MemberProfile = ({ member }) => {
 
   // Format party name for display
   const getPartyName = () => {
-    if (typeof party === 'string') return party;
-    return party?.short_name?.en || '';
+    if (!party) return '';
+    if (typeof party === 'string') {
+      return party;
+    }
+    if (party.short_name && party.short_name.en) {
+      return party.short_name.en;
+    }
+    return '';
   };
 
   // Format constituency for display
   const getConstituency = () => {
-    if (typeof constituency === 'string') return constituency;
-    return constituency?.name?.en || '';
+    if (!constituency) return '';
+    if (typeof constituency === 'string') {
+      return constituency;
+    }
+    if (constituency.name && constituency.name.en) {
+      return constituency.name.en;
+    }
+    return '';
   };
 
   return (
@@ -84,29 +96,42 @@ const MemberProfile = ({ member }) => {
         
         {/* Profile Details */}
         <div className="md:w-2/3 p-4">
-          <div className="flex flex-col mb-4">
-            <h2 className="text-2xl font-bold">{name}</h2>
-            <div className="flex items-center mt-1">
-              <div className={`h-3 w-3 rounded-full ${getPartyColor()} mr-2`}></div>
-              <span className="text-gray-700">{getPartyName()} MP</span>
+        <div className="flex flex-col mb-4">
+          <h2 className="text-2xl font-bold">{name}</h2>
+          <div className="flex items-center mt-1">
+            <div className={`h-3 w-3 rounded-full ${getPartyColor()} mr-2`}></div>
+            <span className="text-gray-700">
+            {getPartyName() ? `${getPartyName()} MP` : 'MP'}
+            </span>
+        </div>
+        <div className="mt-1 text-gray-600">
+            {getConstituency() && province
+            ? `${getConstituency()}, ${province}`
+            : getConstituency() || province || ''}
+        </div>
+
+        {/* Add debugging if needed */}
+        {/*
+        <div className="mt-2 text-xs text-gray-400">
+            Raw party: {JSON.stringify(party)}
+            Raw constituency: {JSON.stringify(constituency)}
+        </div>
+        */}
+
+          {roles && roles.length > 0 && (
+            <div className="mt-3">
+            <h3 className="text-sm font-medium text-gray-700">Roles:</h3>
+            <ul className="mt-1 text-sm text-gray-600">
+                {roles.map((role, index) => (
+                <li key={index} className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>{role}</span>
+                </li>
+                ))}
+            </ul>
             </div>
-            <div className="mt-1 text-gray-600">{getConstituency()}, {province}</div>
-            
-            {roles && roles.length > 0 && (
-              <div className="mt-3">
-                <h3 className="text-sm font-medium text-gray-700">Roles:</h3>
-                <ul className="mt-1 text-sm text-gray-600">
-                  {roles.map((role, index) => (
-                    <li key={index} className="flex items-start">
-                      <span className="mr-2">•</span>
-                      <span>{role}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-          
+        )}
+        </div>
           <div className="border-t pt-4">
             <h3 className="text-sm font-medium text-gray-700 mb-2">Contact Information:</h3>
             <div className="grid grid-cols-1 gap-2 text-sm">
