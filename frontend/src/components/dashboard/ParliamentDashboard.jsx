@@ -86,6 +86,7 @@ const SimpleTabs = ({ children, defaultTab }) => {
           </div>
         )}
         
+
         {activeTab === 'members' && (
           <div className="space-y-6">
             {selectedMember ? (
@@ -101,7 +102,8 @@ const SimpleTabs = ({ children, defaultTab }) => {
                 </button>
                 <div className="grid grid-cols-1 gap-6">
                   <MemberProfile member={selectedMember} />
-                  <VotingHistory votes={getMemberVotingHistory(selectedMember.id)} />
+                  {/* Pass memberId to VotingHistory instead of using getMemberVotingHistory */}
+                  <VotingHistory memberId={selectedMember.id} />
                 </div>
               </div>
             ) : (

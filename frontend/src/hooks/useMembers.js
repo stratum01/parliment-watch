@@ -20,6 +20,13 @@ function useMembers({ limit = 20, page = 1 } = {}) {
 
   // Transform OpenParliament API data to our frontend format
   const transformMember = (apiMember) => {
+    // Fix image path - convert relative URL to absolute URL
+    let photoUrl = apiMember.image || '';
+    if (photoUrl && !photoUrl.startsWith('http')) {
+      // Add the OpenParliament base URL to the image path
+      photoUrl = `https://openparliament.ca${photoUrl}`;
+    }
+  
     return {
       id: apiMember.url,
       name: apiMember.name,
@@ -28,7 +35,7 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       province: apiMember.current_riding?.province || '',
       email: apiMember.email || '',
       phone: apiMember.phone || '',
-      photo_url: apiMember.image || "/api/placeholder/400/400",
+      photo_url: photoUrl || "/api/placeholder/400/400",
       roles: apiMember.roles || [],
       office: {
         address: apiMember.offices?.[0]?.postal || '',
@@ -124,33 +131,39 @@ function useMembers({ limit = 20, page = 1 } = {}) {
   const [detailsError, setDetailsError] = useState(null);
 
   const fetchMemberDetails = useCallback(async (memberId) => {
-    if (!memberId) return;
-    
+    if (!memberId) return null;
+  
     try {
       setDetailsLoading(true);
       setDetailsError(null);
-      
-      // Extract member name from URL if it's a full URL
+    
+      // Extract member name from URL if it's a full URL path
       const memberName = memberId.includes('/') 
         ? memberId.split('/').filter(Boolean).pop() 
         : memberId;
-      
+    
+      console.log('Fetching details for member:', memberName);
+    
       const apiUrl = import.meta.env.VITE_API_URL || 'https://parliament-watch-api.fly.dev/api';
       const response = await fetch(`${apiUrl}/members/${memberName}`);
-      
+    
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
-      
+    
       const data = await response.json();
       console.log('Raw member details:', data); // For debugging
-      
+    
       // Transform the detailed member data
       const formattedMember = transformMember(data);
+      console.log('Transformed member:', formattedMember); // For debugging
+    
       setMemberDetails(formattedMember);
+      return formattedMember; // Return the member details to the caller
     } catch (err) {
-      setDetailsError(err.message || 'Failed to load member details. Please try again.');
       console.error('Error fetching member details:', err);
+      setDetailsError(err.message || 'Failed to load member details. Please try again.');
+      return null; // Return null if there's an error
     } finally {
       setDetailsLoading(false);
     }

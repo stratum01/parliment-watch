@@ -4,7 +4,34 @@ import SearchControls from '../shared/SearchControls';
 
 const MemberSearch = ({ onMemberSelect }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const { members, loading, error } = useMembers();
+  const { 
+    members, 
+    loading, 
+    error,
+    fetchMemberDetails, // This function needs to be used
+    detailsLoading 
+  } = useMembers();
+
+  // Enhanced handler for when a member is selected
+  const handleMemberSelect = async (member) => {
+    try {
+      // Get the member ID (URL) from the member object
+      const memberId = member.id;
+      
+      // Log for debugging
+      console.log('Fetching details for member:', member.name, 'ID:', memberId);
+      
+      // Fetch detailed info before passing to parent component
+      const detailedMember = await fetchMemberDetails(memberId);
+      
+      // If we got detailed member, use it, otherwise use the list member
+      onMemberSelect(detailedMember || member);
+    } catch (err) {
+      console.error('Error fetching member details:', err);
+      // Fall back to basic member info if detailed fetch fails
+      onMemberSelect(member);
+    }
+  };
 
   // Filter members based on search term
   const filteredMembers = members.filter(member => 
@@ -41,7 +68,7 @@ const MemberSearch = ({ onMemberSelect }) => {
               <div
                 key={member.id}
                 className="p-4 border rounded-lg hover:border-blue-200 cursor-pointer"
-                onClick={() => onMemberSelect(member)}
+                onClick={() => handleMemberSelect(member)}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full overflow-hidden">
@@ -60,6 +87,17 @@ const MemberSearch = ({ onMemberSelect }) => {
               </div>
             ))
           )}
+        </div>
+      )}
+      
+      {detailsLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 shadow-xl">
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
+              <p>Loading member details...</p>
+            </div>
+          </div>
         </div>
       )}
     </div>
