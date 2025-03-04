@@ -88,11 +88,20 @@ const SimpleTabs = ({ children, defaultTab }) => {
 // Main Dashboard Component
 const ParliamentDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { votes, loading: votesLoading, error: votesError } = useVotes();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   // Add state for debug panel
   const [showDebugger, setShowDebugger] = useState(false);
+  const [displayCount, setDisplayCount] = useState(3);
+  const { 
+    votes, 
+    loading: votesLoading, 
+    error: votesError,
+    pagination,
+    goToPage,
+    goToNextPage,
+    goToPreviousPage
+  } = useVotes();
 
   // Use real votes data from useVotes hook
   useEffect(() => {
@@ -144,9 +153,38 @@ const ParliamentDashboard = () => {
             <p className="text-gray-500">No votes found. Try adjusting your search.</p>
           </div>
         ) : (
-          filteredVotes.map(vote => (
-            <VoteCard key={vote.id || vote.number} vote={vote} />
-          ))
+          <div>
+            {/* Display only first 3 votes initially */}
+            {filteredVotes.slice(0, displayCount).map(vote => (
+              <VoteCard key={vote.id || vote.number} vote={vote} />
+            ))}
+      
+            {/* Load More Button */}
+            {filteredVotes.length > displayCount && (
+              <div className="text-center mt-4 mb-2">
+                <button 
+                  onClick={() => setDisplayCount(prev => prev + 3)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  Load More Votes
+                </button>
+              </div>
+            )}
+      
+            {/* Pagination if needed */}
+            {pagination && pagination.totalPages > 1 && (
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                onPageChange={(page) => {
+                  goToPage(page);
+                  setDisplayCount(3); // Reset display count when changing pages
+                }}
+                hasNext={pagination.hasNext}
+                hasPrevious={pagination.hasPrevious}
+              />
+            )}
+          </div>
         )}
       </SimpleTabs>
 
