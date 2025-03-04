@@ -27,20 +27,44 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       photoUrl = `https://openparliament.ca${photoUrl}`;
     }
   
+    // Extract contact info
+    const email = apiMember.email || '';
+    const phone = apiMember.voice || apiMember.phone || '';
+  
+    // Extract social media handles
+    const twitter = apiMember.twitter || '';
+  
+    // Extract constituency offices
+    const constituency_offices = [];
+    if (apiMember.other_info && apiMember.other_info.constituency_offices) {
+     // If it's a string, try to parse it
+      if (typeof apiMember.other_info.constituency_offices === 'string') {
+        constituency_offices.push(apiMember.other_info.constituency_offices);
+      } else if (Array.isArray(apiMember.other_info.constituency_offices)) {
+        constituency_offices.push(...apiMember.other_info.constituency_offices);
+      }
+    }
+  
     return {
       id: apiMember.url,
       name: apiMember.name,
       party: apiMember.current_party?.short_name?.en || '',
       constituency: apiMember.current_riding?.name?.en || '',
       province: apiMember.current_riding?.province || '',
-      email: apiMember.email || '',
-      phone: apiMember.phone || '',
+      email: email,
+      phone: phone,
       photo_url: photoUrl || "/api/placeholder/400/400",
       roles: apiMember.roles || [],
       office: {
         address: apiMember.offices?.[0]?.postal || '',
         phone: apiMember.offices?.[0]?.tel || ''
-      }
+      },
+      // Add new fields
+      twitter: twitter,
+      constituency_offices: constituency_offices,
+      wikipedia_id: apiMember.wikipedia_id || '',
+      // Add the raw data for fields we might have missed
+      data: apiMember
     };
   };
 

@@ -3,7 +3,37 @@ import React from 'react';
 const MemberProfile = ({ member }) => {
   if (!member) return null;
   
-  const { name, party, constituency, province, email, phone, photo_url, roles, office } = member;
+  // Extract all the needed data
+  const { 
+    name, 
+    party, 
+    constituency, 
+    province, 
+    email, 
+    phone, 
+    photo_url, 
+    roles, 
+    office,
+    data // Raw data from the API
+  } = member;
+
+  // Extract additional fields from raw data if available
+  const rawData = data || {};
+  const otherInfo = rawData.other_info || {};
+  const related = rawData.related || {};
+  const constituency_offices = otherInfo.constituency_offices || [];
+  const twitter = otherInfo.twitter || rawData.twitter;
+  const wikipedia_id = otherInfo.wikipedia_id || rawData.wikipedia_id;
+  const websites = [];
+  
+  // Construct official URL
+  const official_url = rawData.url 
+    ? `https://openparliament.ca${rawData.url}` 
+    : null;
+  
+  // Add websites
+  if (official_url) websites.push({ name: 'Parliament Profile', url: official_url });
+  if (wikipedia_id) websites.push({ name: 'Wikipedia', url: `https://en.wikipedia.org/wiki/${wikipedia_id}` });
 
   // Determine party color
   const getPartyColor = () => {
@@ -79,7 +109,7 @@ const MemberProfile = ({ member }) => {
           
           <div className="border-t pt-4">
             <h3 className="text-sm font-medium text-gray-700 mb-2">Contact Information:</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+            <div className="grid grid-cols-1 gap-2 text-sm">
               {email && (
                 <div>
                   <div className="flex items-center">
@@ -93,7 +123,7 @@ const MemberProfile = ({ member }) => {
               
               {phone && (
                 <div>
-                  <div className="flex items-center mt-2">
+                  <div className="flex items-center">
                     <svg className="h-4 w-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
@@ -102,31 +132,84 @@ const MemberProfile = ({ member }) => {
                 </div>
               )}
               
-              {office && (office.address || office.phone) && (
-                <div className="col-span-2 mt-2">
-                  <div className="flex items-start">
-                    <svg className="h-4 w-4 mr-2 text-gray-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              {/* Social Media */}
+              {twitter && (
+                <div>
+                  <div className="flex items-center">
+                    <svg className="h-4 w-4 mr-2 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723 10.1 10.1 0 01-3.127 1.184 4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
                     </svg>
-                    <div>
-                      <div className="font-medium">Constituency Office:</div>
-                      {office.address && (
-                        <p className="text-gray-600 text-xs mt-1">
-                          {office.address}
-                        </p>
-                      )}
-                      {office.phone && (
-                        <p className="text-gray-600 text-xs mt-1">
-                          Phone: {office.phone}
-                        </p>
-                      )}
-                    </div>
+                    <a href={`https://twitter.com/${twitter.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                      {twitter}
+                    </a>
                   </div>
                 </div>
               )}
             </div>
           </div>
+          
+          {/* Constituency Offices */}
+          {constituency_offices && constituency_offices.length > 0 && (
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Constituency Office:</h3>
+              <div className="space-y-2">
+                {constituency_offices.map((office, index) => (
+                  <div key={index} className="flex items-start">
+                    <svg className="h-4 w-4 mr-2 text-gray-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <div>
+                      <div className="text-xs text-gray-600">{office}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Main Constituency Office */}
+          {office && (office.address || office.phone) && (
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Parliament Office:</h3>
+              <div className="flex items-start">
+                <svg className="h-4 w-4 mr-2 text-gray-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                <div>
+                  {office.address && (
+                    <p className="text-xs text-gray-600">{office.address}</p>
+                  )}
+                  {office.phone && (
+                    <p className="text-xs text-gray-600 mt-1">Phone: {office.phone}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Websites */}
+          {websites.length > 0 && (
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">More Information:</h3>
+              <div className="flex flex-wrap gap-2">
+                {websites.map((site, index) => (
+                  <a 
+                    key={index}
+                    href={site.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-xs text-gray-700 flex items-center"
+                  >
+                    <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    {site.name}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
