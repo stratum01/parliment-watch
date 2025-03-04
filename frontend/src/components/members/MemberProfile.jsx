@@ -1,4 +1,5 @@
 import React from 'react';
+import FavoriteWordBubble from '../shared/FavoriteWordBubble';
 
 const MemberProfile = ({ member }) => {
   if (!member) return null;
@@ -85,38 +86,37 @@ const MemberProfile = ({ member }) => {
     <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
       <div className="md:flex">
       {/* Profile Photo with Favorite Word Bubble and Tags */}
-      <div className="md:w-1/3 p-4 flex justify-center relative">
-        {/* Special Tags */}
-        {data?.other_info?.wordcloud_id && (
-          <div className="absolute -top-3 -left-2">
-            <span className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">
-              {data.other_info.wordcloud_id}
-            </span>
-          </div>
-        )}
-
-        <div className="w-32 h-32 md:w-40 md:h-40 relative rounded-lg overflow-hidden">
-          <img
-            src={photo_url || "/api/placeholder/400/400"}
-            alt={name}
-            className="object-cover w-full h-full"
-          />
-        </div>
-        {/* Favorite Word Speech Bubble */}
-        {data?.other_info?.favourite_word || favorite_word ? (
-          <div className="absolute top-3 left-0 transform -translate-x-3/4">
-            <div className="relative z-10">
-              <div className={`${getPartyColor()} text-white rounded-lg px-3 py-2 shadow-lg text-sm font-medium`}>
-                <span>"{typeof data?.other_info?.favourite_word === 'string' 
-                  ? data.other_info.favourite_word 
-                  : Array.isArray(data?.other_info?.favourite_word) 
-                    ? data.other_info.favourite_word[0] 
-                    : favorite_word}"</span>
-              </div>
-              <div className={`absolute top-1/2 -right-1.5 transform -translate-y-1/2 rotate-45 w-3 h-3 ${getPartyColor()}`}></div>
+      <div className="md:w-1/3 p-4 flex justify-center">
+        <div className="relative">
+          {/* Special Tags */}
+          {data?.other_info?.wordcloud_id && (
+            <div className="absolute -top-3 -left-2 z-20">
+              <span className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">
+                {data.other_info.wordcloud_id}
+              </span>
             </div>
+          )}
+
+          {/* Favorite Word Speech Bubble */}
+          {(data?.other_info?.favourite_word || favorite_word) && (
+            <FavoriteWordBubble 
+              favoriteWord={typeof data?.other_info?.favourite_word === 'string' 
+                ? data.other_info.favourite_word 
+                : Array.isArray(data?.other_info?.favourite_word) 
+                  ? data.other_info.favourite_word[0] 
+                  : favorite_word}
+              partyColor={getPartyColor()}
+            />
+          )}
+
+          <div className="w-32 h-32 md:w-40 md:h-40 rounded-lg overflow-hidden">
+            <img
+              src={photo_url || "/api/placeholder/400/400"}
+              alt={name}
+              className="object-cover w-full h-full"
+            />
           </div>
-        ) : null}
+        </div>
       </div>
 
         {/* Profile Details */}
