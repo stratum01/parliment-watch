@@ -1,12 +1,7 @@
-// src/hooks/useVotes.js
-
 import { useState, useEffect, useCallback } from 'react';
-import { getVotes, getVoteDetails } from '../lib/api/openParliament';
-import { parsePagination } from '../lib/paginationUtils';
-import { handleAPIError } from '../lib/api/errorHandler';
 
 /**
- * Hook to fetch and manage votes data from the OpenParliament API
+ * Hook to fetch and manage votes data from our backend API
  * @param {Object} options - Hook options
  * @param {number} options.limit - Number of votes per page
  * @param {number} options.initialOffset - Initial offset for pagination
@@ -33,29 +28,42 @@ function useVotes({ limit = 20, initialOffset = 0, session = null } = {}) {
     try {
       setLoading(true);
       setError(null);
+  
+      // Use your backend API
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://parliament-watch-api.fly.dev/api';
+      const response = await fetch(`${apiUrl}/votes?limit=${limit}&offset=${pagination.offset}`);
+  
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+    
+      const data = await response.json();
+      console.log('Votes API response:', data);
       
-      const data = await getVotes({
-        limit: pagination.limit,
-        offset: pagination.offset,
-        session,
-      });
+      // Transform and set votes data
+      const votesArray = data.objects || [];
+      setVotes(votesArray);
       
-      // Update votes data
-      setVotes(data.objects || []);
-      
-      // Update pagination information
-      const paginationData = data.pagination || {};
-      setPagination(prev => ({
-        ...prev,
-        ...parsePagination(paginationData, prev.limit)
-      }));
+      // Update pagination if available
+      if (data.pagination) {
+        setPagination({
+          offset: pagination.offset,
+          limit: pagination.limit,
+          hasNext: !!data.pagination.next_url,
+          hasPrevious: !!data.pagination.previous_url,
+          nextUrl: data.pagination.next_url,
+          previousUrl: data.pagination.previous_url,
+          totalPages: Math.ceil((data.pagination.count || 0) / limit),
+          currentPage: Math.floor(pagination.offset / limit) + 1,
+        });
+      }
     } catch (err) {
-      setError(handleAPIError(err, 'Failed to load votes data. Please try again.'));
+      setError(err.message || 'Failed to load votes data. Please try again.');
       console.error('Error fetching votes:', err);
     } finally {
       setLoading(false);
     }
-  }, [pagination.limit, pagination.offset, session]);
+  }, [limit, pagination.offset]);
 
   // Initial data fetch
   useEffect(() => {
@@ -99,17 +107,29 @@ function useVotes({ limit = 20, initialOffset = 0, session = null } = {}) {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState(null);
 
-  const fetchVoteDetails = useCallback(async (voteUrl) => {
-    if (!voteUrl) return;
+  const fetchVoteDetails = useCallback(async (voteId) => {
+    if (!voteId) return;
     
     try {
       setDetailsLoading(true);
       setDetailsError(null);
       
-      const data = await getVoteDetails(voteUrl);
+      // Extract vote number from URL if needed
+      const voteNumber = typeof voteId === 'string' && voteId.includes('/') 
+        ? voteId.split('/').filter(Boolean).pop() 
+        : voteId;
+      
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://parliament-watch-api.fly.dev/api';
+      const response = await fetch(`${apiUrl}/votes/${voteNumber}`);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
       setVoteDetails(data);
     } catch (err) {
-      setDetailsError(handleAPIError(err, 'Failed to load vote details. Please try again.'));
+      setDetailsError(err.message || 'Failed to load vote details. Please try again.');
       console.error('Error fetching vote details:', err);
     } finally {
       setDetailsLoading(false);
