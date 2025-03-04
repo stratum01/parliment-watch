@@ -12,7 +12,7 @@ import useMembers from '../../hooks/useMembers';
 // Import the pagination component
 import Pagination from '../shared/Pagination';
 // Import the debug tools
-import { ApiDebugPanel } from '../../hooks/useApiDebug';
+import { ApiDebugPanel } from '../../hooks/ApiDebugPanel';
 
 
 const SimpleTabs = ({ children, defaultTab }) => {
