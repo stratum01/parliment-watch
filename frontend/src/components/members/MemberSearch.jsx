@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import useMembers from '../../hooks/useMembers';
 import SearchControls from '../shared/SearchControls';
 
 const MemberSearch = ({ onMemberSelect }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [displayCount, setDisplayCount] = useState(12); // Show 12 members initially
+  const [selectedParty, setSelectedParty] = useState(''); // For party filtering
+  
   const { 
     members, 
     loading, 
@@ -36,19 +39,62 @@ const MemberSearch = ({ onMemberSelect }) => {
     }
   };
 
-  // Filter members based on search term
-  const filteredMembers = members.filter(member => 
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (member.constituency && member.constituency.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Get unique parties for filtering
+  const parties = [...new Set(members.map(member => member.party))].filter(Boolean).sort();
+
+  // Filter members based on search term and selected party
+  const filteredMembers = members.filter(member => {
+    const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (member.constituency && member.constituency.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesParty = selectedParty ? member.party === selectedParty : true;
+    
+    return matchesSearch && matchesParty;
+  });
 
   return (
     <div className="mb-6">
-      <SearchControls
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        placeholder="Search MPs by name or constituency..."
-      />
+      <div className="flex flex-wrap gap-2 mb-4">
+        <SearchControls
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          placeholder="Search MPs by name or constituency..."
+          className="flex-grow"
+        />
+        
+        {/* Party Filter Buttons */}
+        <div className="flex flex-wrap gap-2 mt-4">
+          <button
+            onClick={() => setSelectedParty('')}
+            className={`px-3 py-1 text-sm rounded-full ${
+              selectedParty === '' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            All Parties
+          </button>
+          
+          {parties.map(party => (
+            <button
+              key={party}
+              onClick={() => setSelectedParty(party)}
+              className={`px-3 py-1 text-sm rounded-full ${
+                selectedParty === party
+                  ? party === 'Conservative' ? 'bg-blue-600 text-white' :
+                    party === 'Liberal' ? 'bg-red-600 text-white' :
+                    party === 'NDP' ? 'bg-orange-600 text-white' :
+                    party === 'Green' ? 'bg-green-600 text-white' :
+                    party === 'Bloc Québécois' ? 'bg-sky-600 text-white' :
+                    'bg-gray-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {party}
+            </button>
+          ))}
+        </div>
+      </div>
       
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md mt-4">
@@ -68,7 +114,7 @@ const MemberSearch = ({ onMemberSelect }) => {
                 <p className="text-gray-500">No members found matching your search criteria.</p>
               </div>
             ) : (
-              filteredMembers.map(member => (
+              filteredMembers.slice(0, displayCount).map(member => (
                 <div
                   key={member.id}
                   className="p-4 border rounded-lg hover:border-blue-200 cursor-pointer"
@@ -85,7 +131,16 @@ const MemberSearch = ({ onMemberSelect }) => {
                     <div>
                       <h3 className="font-medium">{member.name}</h3>
                       <p className="text-sm text-gray-600">{member.constituency}</p>
-                      <p className="text-xs text-gray-500">{member.party}</p>
+                      <p className={`text-xs font-semibold ${
+                        member.party === 'Conservative' ? 'text-blue-600' :
+                        member.party === 'Liberal' ? 'text-red-600' :
+                        member.party === 'NDP' ? 'text-orange-600' :
+                        member.party === 'Green' ? 'text-green-600' :
+                        member.party === 'Bloc Québécois' ? 'text-sky-600' :
+                        'text-gray-600'
+                      }`}>
+                        {member.party}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -93,8 +148,20 @@ const MemberSearch = ({ onMemberSelect }) => {
             )}
           </div>
           
-          {/* Pagination Controls */}
-          {pagination && pagination.totalPages > 1 && searchTerm === '' && (
+          {/* Load More Button */}
+          {filteredMembers.length > displayCount && (
+            <div className="text-center mt-6">
+              <button 
+                onClick={() => setDisplayCount(prev => prev + 12)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                Load More Members
+              </button>
+            </div>
+          )}
+          
+          {/* Standard Pagination */}
+          {pagination && pagination.totalPages > 1 && searchTerm === '' && !selectedParty && (
             <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
               <button
                 onClick={goToPreviousPage}
