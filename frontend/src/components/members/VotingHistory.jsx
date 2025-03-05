@@ -28,97 +28,148 @@ const VotingHistory = ({ votes: initialVotes, memberId }) => {
         
         console.log('Attempting to fetch votes for member:', memberName);
 
-        // Use our own backend API which should handle CORS properly
+        // Try different API endpoints in sequence
         try {
+          // Try to get the mock votes first for quick development testing
           const apiUrl = import.meta.env.VITE_API_URL || 'https://parliament-watch-api.fly.dev/api';
+          const mockUrl = `${apiUrl}/members/${memberName}/mock-votes`;
+          console.log('Fetching mock votes from:', mockUrl);
           
-          // First try to get the member's ballots
+          const mockResponse = await fetch(mockUrl);
+          
+          if (mockResponse.ok) {
+            const mockData = await mockResponse.json();
+            console.log('Mock votes data:', mockData);
+            
+            // If we got mock data, use it
+            if (mockData.objects && mockData.objects.length > 0) {
+              setMemberVotes(mockData.objects);
+              setLoading(false);
+              return;
+            }
+          }
+          
+          // Try the ballots endpoint
+          console.log('Fetching ballots from API');
           const ballotsUrl = `${apiUrl}/members/${memberName}/ballots`;
-          console.log('Fetching ballots from:', ballotsUrl);
+          console.log('Ballots URL:', ballotsUrl);
           
           const ballotsResponse = await fetch(ballotsUrl);
+          console.log('Ballots response status:', ballotsResponse.status);
           
-          if (!ballotsResponse.ok) {
-            console.warn(`Ballots API returned status ${ballotsResponse.status} for member ${memberName}`);
-            throw new Error('Could not fetch member ballots');
-          }
-          
-          const ballotsData = await ballotsResponse.json();
-          console.log('Raw ballots data:', ballotsData);
-          
-          // Extract ballots from the API response
-          const ballotsArray = ballotsData.objects || [];
-          
-          if (ballotsArray.length === 0) {
-            // No ballots found, try fallback to votes endpoint
-            throw new Error('No ballots found');
-          }
-          
-          // Process the ballots into enriched votes
-          const processedVotes = ballotsArray.slice(0, 20).map(ballot => {
-            // Extract vote details from ballot if available
-            return {
-              id: ballot.vote_url || `vote-${ballot.id}`,
-              bill: ballot.bill_number || ballot.bill?.number || 'Motion',
-              description: typeof ballot.description === 'object' 
-                ? ballot.description.en 
-                : (ballot.description || 'No description available'),
-              date: ballot.date || 'Unknown date',
-              vote: ballot.ballot || 'Unknown',
-              result: ballot.result || 'Unknown'
-            };
-          });
-          
-          setMemberVotes(processedVotes);
-        } catch (ballotsErr) {
-          console.warn('Error fetching ballots, falling back to votes endpoint:', ballotsErr);
-          
-          // Fall back to the votes endpoint
-          try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'https://parliament-watch-api.fly.dev/api';
-            const votesUrl = `${apiUrl}/members/${memberName}/votes`;
-            console.log('Falling back to votes endpoint:', votesUrl);
+          if (ballotsResponse.ok) {
+            const ballotsData = await ballotsResponse.json();
+            console.log('Ballots data:', ballotsData);
             
-            const response = await fetch(votesUrl);
-            
-            if (!response.ok) {
-              console.warn(`Votes API returned status ${response.status} for member ${memberName}`);
-              // Try mock data as a last resort
-              throw new Error('Could not fetch member votes');
+            // Transform the ballots data if needed
+            if (ballotsData.objects && ballotsData.objects.length > 0) {
+              const formattedVotes = ballotsData.objects.map(ballot => ({
+                id: ballot.vote_url || `vote-${ballot.id}`,
+                bill: ballot.bill_number || (ballot.vote_details?.bill ? ballot.vote_details.bill.number : 'Motion'),
+                description: ballot.description || 
+                  (ballot.vote_details?.description ? 
+                    (typeof ballot.vote_details.description === 'object' ? 
+                      ballot.vote_details.description.en : 
+                      ballot.vote_details.description) : 
+                    'No description available'),
+                date: ballot.date || (ballot.vote_details?.date || 'Unknown date'),
+                vote: ballot.ballot || 'Unknown',
+                result: ballot.result || (ballot.vote_details?.result || 'Unknown')
+              }));
+              
+              setMemberVotes(formattedVotes);
+              setLoading(false);
+              return;
             }
-            
-            const data = await response.json();
-            console.log('Raw votes data from API:', data);
-            
-            // Extract votes from the API response
-            const votesArray = data.objects || [];
-            
-            // Transform the votes data if needed
-            const formattedVotes = votesArray.map(vote => ({
-              id: vote.id || vote.url,
-              bill: vote.bill_number || vote.bill?.number || 'Motion',
-              description: typeof vote.description === 'object' ? vote.description.en : vote.description,
-              date: vote.date,
-              vote: vote.vote || (vote.ballot && vote.ballot === 1 ? 'Yea' : 'Nay'),
-              result: vote.result || (vote.passed ? 'Passed' : 'Failed')
-            }));
-            
-            setMemberVotes(formattedVotes);
-          } catch (votesErr) {
-            console.error('All API attempts failed, using mock data:', votesErr);
-            
-            // As a last resort, use mock data
-            const mockVotes = generateMockVotingData(memberName);
-            setMemberVotes(mockVotes);
           }
+          
+          // If ballots endpoint fails, try votes endpoint
+          console.log('Fallback to votes endpoint');
+          const votesUrl = `${apiUrl}/members/${memberName}/votes`;
+          const votesResponse = await fetch(votesUrl);
+          
+          if (!votesResponse.ok) {
+            console.warn(`Votes API returned status ${votesResponse.status} for member ${memberName}`);
+            throw new Error(`Votes API error: ${votesResponse.status}`);
+          }
+          
+          const votesData = await votesResponse.json();
+          console.log('Votes data:', votesData);
+          
+          // Extract votes from the API response
+          const votesArray = votesData.objects || [];
+          
+          if (votesArray.length === 0) {
+            console.log('No votes found in API response');
+            throw new Error('No votes found');
+          }
+          
+          // Transform the votes data if needed
+          const formattedVotes = votesArray.map(vote => ({
+            id: vote.id || vote.url,
+            bill: vote.bill_number || vote.bill?.number || 'Motion',
+            description: typeof vote.description === 'object' ? vote.description.en : vote.description,
+            date: vote.date,
+            vote: vote.vote || (vote.ballot && vote.ballot === 1 ? 'Yea' : 'Nay'),
+            result: vote.result || (vote.passed ? 'Passed' : 'Failed')
+          }));
+          
+          setMemberVotes(formattedVotes);
+        } catch (apiErr) {
+          console.error('All API attempts failed, using hardcoded mock data:', apiErr);
+          
+          // As a last resort, use hardcoded mock data based on member name
+          const isConservative = memberName.toLowerCase().includes('conservative');
+          const isLiberal = memberName.toLowerCase().includes('liberal');
+          
+          const mockVotes = [
+            {
+              id: 'mock-1',
+              bill: 'Bill C-56',
+              description: 'Affordable Housing and Public Transit Act',
+              date: '2024-11-20',
+              vote: isConservative ? 'Nay' : 'Yea',
+              result: 'Passed'
+            },
+            {
+              id: 'mock-2',
+              bill: 'Motion',
+              description: 'Opposition Motion (Confidence in the government)',
+              date: '2024-11-15',
+              vote: isConservative ? 'Nay' : 'Yea',
+              result: 'Passed'
+            },
+            {
+              id: 'mock-3',
+              bill: 'Bill C-45',
+              description: 'Cannabis Regulation Amendment Act',
+              date: '2024-10-28',
+              vote: 'Yea',
+              result: 'Passed'
+            },
+            {
+              id: 'mock-4',
+              bill: 'Bill C-35',
+              description: 'Canada Early Learning and Child Care Act',
+              date: '2024-10-12',
+              vote: isConservative ? 'Nay' : 'Yea',
+              result: 'Passed'
+            },
+            {
+              id: 'mock-5',
+              bill: 'Bill C-63',
+              description: 'Online Streaming Act',
+              date: '2024-09-30',
+              vote: isLiberal ? 'Yea' : 'Nay',
+              result: 'Passed'
+            },
+          ];
+          
+          setMemberVotes(mockVotes);
         }
       } catch (err) {
         console.error('Error in votes process:', err);
         setError('Could not retrieve voting history at this time.');
-        
-        // Provide mock data if all else fails
-        const mockVotes = generateMockVotingData(memberId);
-        setMemberVotes(mockVotes);
       } finally {
         setLoading(false);
       }
@@ -126,58 +177,6 @@ const VotingHistory = ({ votes: initialVotes, memberId }) => {
     
     fetchVotes();
   }, [initialVotes, memberId]);
-  
-  // Generate mock voting data as a fallback
-  const generateMockVotingData = (memberName) => {
-    // Get the party from the member ID if possible
-    const isLiberal = memberName.toLowerCase().includes('liberal');
-    const isConservative = memberName.toLowerCase().includes('conservative');
-    const isNDP = memberName.toLowerCase().includes('ndp');
-    
-    // Create mock votes with realistic patterns
-    return [
-      {
-        id: 'mock-1',
-        bill: 'Bill C-56',
-        description: 'Affordable Housing and Public Transit Act',
-        date: '2024-11-20',
-        vote: isConservative ? 'Nay' : 'Yea',
-        result: 'Passed'
-      },
-      {
-        id: 'mock-2',
-        bill: 'Motion',
-        description: 'Opposition Motion (Confidence in the government)',
-        date: '2024-11-15',
-        vote: isConservative ? 'Nay' : 'Yea',
-        result: 'Passed'
-      },
-      {
-        id: 'mock-3',
-        bill: 'Bill C-45',
-        description: 'Cannabis Regulation Amendment Act',
-        date: '2024-10-28',
-        vote: isNDP ? 'Yea' : (isLiberal ? 'Yea' : 'Nay'),
-        result: 'Passed'
-      },
-      {
-        id: 'mock-4',
-        bill: 'Bill C-35',
-        description: 'Canada Early Learning and Child Care Act',
-        date: '2024-10-12',
-        vote: isConservative ? 'Nay' : 'Yea',
-        result: 'Passed'
-      },
-      {
-        id: 'mock-5',
-        bill: 'Bill C-63',
-        description: 'Online Streaming Act',
-        date: '2024-09-30',
-        vote: isNDP ? 'Nay' : (isLiberal ? 'Yea' : 'Nay'),
-        result: 'Passed'
-      },
-    ];
-  };
   
   if (loading) {
     return (
