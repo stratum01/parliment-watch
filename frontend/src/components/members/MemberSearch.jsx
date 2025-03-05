@@ -15,9 +15,14 @@ const MemberSearch = ({ onMemberSelect }) => {
     fetchMemberDetails,
     detailsLoading,
     pagination,
-    loadMore,
-    refresh
+    refresh,
+    loadMore 
   } = useMembers();
+
+  // Debug log to check when members change
+  useEffect(() => {
+    console.log(`Members updated, count: ${members.length}`);
+  }, [members]);
 
   // Handler for party filter button clicks
   const handlePartyFilter = (party) => {
@@ -30,7 +35,6 @@ const MemberSearch = ({ onMemberSelect }) => {
     // Call refresh with the party filter
     console.log('Calling refresh with party filter:', { party });
     refresh({ party });
-    console.log('Refresh called');
   };
 
   // Enhanced handler for when a member is selected
@@ -54,7 +58,7 @@ const MemberSearch = ({ onMemberSelect }) => {
     }
   };
 
-  // Get unique parties for filtering
+  // Get unique parties for filtering from all fetched members
   const parties = [...new Set(allMembers.map(member => member.party))].filter(Boolean).sort();
   
   // Filter members based on search term
@@ -65,23 +69,21 @@ const MemberSearch = ({ onMemberSelect }) => {
       })
     : members;
 
-  // Log for debugging
-  useEffect(() => {
-    console.log(`Displaying ${filteredBySearch.length} members after filtering`);
-    console.log('Current pagination:', pagination);
-    console.log('All members count:', allMembers.length);
-    console.log('Filtered members count:', members.length);
-  }, [filteredBySearch, pagination, allMembers.length, members.length]);
-
-  // Function to handle "Load More" button click
+  // Handler for Load More button
   const handleLoadMore = () => {
-    // If we're showing fewer members than we have filtered, just show more
+    console.log('Load More clicked');
+    
+    // If we have more already loaded members to show
     if (displayCount < filteredBySearch.length) {
-      setDisplayCount(prevCount => prevCount + 12);
+      console.log(`Increasing display count from ${displayCount} to ${displayCount + 12}`);
+      setDisplayCount(prev => prev + 12);
     } 
-    // Otherwise, fetch more from the API
-    else if (pagination.hasMore) {
+    // Otherwise fetch more data from the API
+    else if (pagination.nextOffset) {
+      console.log('Need to load more data from API');
       loadMore();
+    } else {
+      console.log('No more data to load');
     }
   };
 
@@ -181,15 +183,15 @@ const MemberSearch = ({ onMemberSelect }) => {
             )}
           </div>
           
-          {/* Load More Button - with refined logic */}
-          {(displayCount < filteredBySearch.length || pagination.hasMore) && (
+          {/* Load More Button */}
+          {(filteredBySearch.length > displayCount || pagination.nextOffset) && (
             <div className="text-center mt-6">
               <button 
                 onClick={handleLoadMore}
                 disabled={loading && filteredBySearch.length > 0}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
               >
-                {loading && filteredBySearch.length > 0 ? (
+                {loading ? (
                   <span className="flex items-center justify-center">
                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -204,10 +206,10 @@ const MemberSearch = ({ onMemberSelect }) => {
             </div>
           )}
           
-          {/* Display member count information */}
-          <div className="text-center mt-4 text-sm text-gray-600">
-            Showing {Math.min(displayCount, filteredBySearch.length)} of {filteredBySearch.length} filtered members
-            {pagination.hasMore && ' (more available)'}
+          {/* Stats about displayed members */}
+          <div className="text-center mt-2 text-sm text-gray-500">
+            Showing {Math.min(displayCount, filteredBySearch.length)} of {filteredBySearch.length} members
+            {pagination.nextOffset ? ' (more available from API)' : ''}
           </div>
         </>
       )}

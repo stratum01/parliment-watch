@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 
 function useMembers({ limit = 20, page = 1 } = {}) {
-  const [members, setMembers] = useState([]); // Filtered members for display
-  const [allMembers, setAllMembers] = useState([]); // Store all fetched members across all pages
+  const [members, setMembers] = useState([]); // Current filtered members
+  const [allMembers, setAllMembers] = useState([]); // All fetched members
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeFilters, setActiveFilters] = useState({});
@@ -11,7 +11,7 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     limit,
     totalPages: 0,
     totalMembers: 0,
-    hasMore: true // Track if there's more data to fetch
+    nextOffset: 0
   });
 
   // Transform OpenParliament API data to our frontend format
@@ -232,22 +232,16 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     };
   };
 
-  const fetchMembers = useCallback(async (reset = false) => {
+  // Fetch members from API
+  const fetchMembers = useCallback(async (offset = 0) => {
     try {
       setLoading(true);
       setError(null);
-      
-      // If reset is true, we're starting a new search (e.g., after changing filters)
-      // Otherwise, we're paginating/adding more
-      const currentPage = reset ? 1 : pagination.page;
      
       // Use the API URL from .env
       const apiUrl = import.meta.env.VITE_API_URL || 'https://parliament-watch-api.fly.dev/api';
     
       // Build query parameters for pagination
-      const offset = (currentPage - 1) * pagination.limit;
-    
-      // Start with basic params
       let params = `format=json&limit=${pagination.limit}&offset=${offset}`;
     
       // Log the URL we're fetching
@@ -270,52 +264,48 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       const formattedMembers = membersArray.map(transformMember);
       console.log('Transformed members:', formattedMembers);
   
-      // Update allMembers - append or replace depending on reset flag
+      // Add new members to allMembers
       setAllMembers(prev => {
-        if (reset) {
-          return formattedMembers; // Start fresh
-        } else {
-          // Combine existing and new members, avoid duplicates by ID
-          const existingIds = new Set(prev.map(m => m.id));
-          const uniqueNewMembers = formattedMembers.filter(m => !existingIds.has(m.id));
-          return [...prev, ...uniqueNewMembers];
-        }
+        const existingIds = new Set(prev.map(m => m.id));
+        const uniqueNewMembers = formattedMembers.filter(m => !existingIds.has(m.id));
+        return [...prev, ...uniqueNewMembers];
       });
       
       // Update pagination if available
       if (data.pagination) {
-        const nextPage = currentPage + 1;
-        const totalPagesEstimate = Math.ceil(data.pagination.count / pagination.limit) || 1;
-        const hasMorePages = data.pagination.next_url !== null;
+        const nextUrl = data.pagination.next_url;
+        let nextOffset = null;
+        
+        if (nextUrl) {
+          const urlObj = new URL(nextUrl, 'https://example.com');
+          nextOffset = parseInt(urlObj.searchParams.get('offset') || '0', 10);
+        }
         
         setPagination({
-          page: nextPage, // Increment page for next fetch
+          page: Math.floor(data.pagination.offset / pagination.limit) + 1,
           limit: pagination.limit,
-          totalPages: totalPagesEstimate,
+          totalPages: Math.ceil(data.pagination.count / pagination.limit) || 1,
           totalMembers: data.pagination.count || membersArray.length,
-          hasMore: hasMorePages
+          nextOffset: nextOffset
         });
       }
+      
+      return formattedMembers;
     } catch (err) {
       setError(err.message || 'Failed to load members data. Please try again.');
       console.error('Error fetching members:', err);
+      return [];
     } finally {
       setLoading(false);
-      
-      // After loading, apply any active filters to the updated allMembers
-      setAllMembers(prev => {
-        // Using setTimeout to ensure state is updated before we try to filter
-        setTimeout(() => applyFilters(prev, activeFilters), 0);
-        return prev;
-      });
     }
-  }, [pagination.limit, pagination.page, activeFilters]);
+  }, [pagination.limit]);
 
   // Apply client-side filtering
   const applyFilters = useCallback((membersToFilter, filters) => {
     if (!filters || Object.keys(filters).length === 0) {
+      // If no filters, just use all members
       setMembers(membersToFilter);
-      return;
+      return membersToFilter;
     }
 
     console.log('Applying client-side filters:', filters);
@@ -334,12 +324,35 @@ function useMembers({ limit = 20, page = 1 } = {}) {
 
     console.log(`Filtered from ${membersToFilter.length} to ${filteredMembers.length} members`);
     setMembers(filteredMembers);
+    return filteredMembers;
   }, []);
 
-  // Initial data fetch
+  // Fetch initial data
   useEffect(() => {
-    fetchMembers(true); // Reset on first load
+    // Initial fetch
+    fetchMembers(0).then(initialMembers => {
+      // Apply any filters to initial data
+      applyFilters(initialMembers, activeFilters);
+    });
   }, []);
+
+  // Load more members from API
+  const loadMore = useCallback(async () => {
+    console.log('Load more called');
+    
+    if (!pagination.nextOffset) {
+      console.log('No more members to load');
+      return;
+    }
+    
+    console.log(`Loading more members with offset ${pagination.nextOffset}`);
+    
+    // Fetch more members
+    const newMembers = await fetchMembers(pagination.nextOffset);
+    
+    // Reapply filters to all members
+    applyFilters([...allMembers, ...newMembers], activeFilters);
+  }, [fetchMembers, pagination.nextOffset, allMembers, applyFilters, activeFilters]);
 
   // Handle manual refresh with filters
   const refresh = useCallback((filters = {}) => {
@@ -348,50 +361,9 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     // Store the active filters
     setActiveFilters(filters);
     
-    // Reset pagination and fetch from beginning
-    setPagination(prev => ({
-      ...prev,
-      page: 1
-    }));
-    
-    // Fetch members from the beginning
-    fetchMembers(true);
-  }, [fetchMembers]);
-
-  // Load more function that works with filtered data
-  const loadMore = useCallback(() => {
-    // If we have active filters, we need to check if loading more would help
-    if (Object.keys(activeFilters).length > 0) {
-      // First check if we have loaded all data
-      if (!pagination.hasMore) {
-        console.log('No more data to load from API');
-        return;
-      }
-      
-      // If we have active filters and need more data, fetch the next page
-      console.log('Loading more data with active filters');
-      fetchMembers(false); // Don't reset, just append
-    } else {
-      // No filters, just load next page normally
-      fetchMembers(false);
-    }
-  }, [fetchMembers, activeFilters, pagination.hasMore]);
-
-  const goToNextPage = useCallback(() => {
-    loadMore();
-  }, [loadMore]);
-
-  const goToPreviousPage = useCallback(() => {
-    // For simplicity, we don't implement going back in this approach
-    // since we're accumulating all data
-    console.log('Previous page not implemented in cumulative mode');
-  }, []);
-
-  const goToPage = useCallback((page) => {
-    // For simplicity, we don't implement direct page navigation
-    // since we're accumulating all data
-    console.log('Direct page navigation not implemented in cumulative mode');
-  }, []);
+    // Apply filters to existing members
+    applyFilters(allMembers, filters);
+  }, [allMembers, applyFilters]);
 
   // fetchMemberDetails
   const [memberDetails, setMemberDetails] = useState(null);
@@ -440,11 +412,7 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     error,
     pagination,
     refresh,
-    fetchMembers,
     loadMore,
-    goToNextPage,
-    goToPreviousPage,
-    goToPage,
     memberDetails,
     detailsLoading,
     detailsError,
