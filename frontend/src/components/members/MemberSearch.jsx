@@ -9,6 +9,7 @@ const MemberSearch = ({ onMemberSelect }) => {
   
   const { 
     members, 
+    allMembers,
     loading, 
     error,
     fetchMemberDetails,
@@ -19,15 +20,19 @@ const MemberSearch = ({ onMemberSelect }) => {
     refresh  // Add this
   } = useMembers();
 
+  // Handler for party filter button clicks
   const handlePartyFilter = (party) => {
     console.log('Party filter clicked:', party);
+    
+    // Update local state
     setSelectedParty(party);
-    setDisplayCount(12);
-  
+    setDisplayCount(12); // Reset display count when changing filters
+    
+    // Call refresh with the party filter
     console.log('Calling refresh with party filter:', { party });
     refresh({ party });
     console.log('Refresh called');
-  }
+  };
 
   // Enhanced handler for when a member is selected
   const handleMemberSelect = async (member) => {
@@ -51,17 +56,21 @@ const MemberSearch = ({ onMemberSelect }) => {
   };
 
   // Get unique parties for filtering
-  const parties = [...new Set(members.map(member => member.party))].filter(Boolean).sort();
+  const parties = [...new Set(allMembers.map(member => member.party))].filter(Boolean).sort();
+  
+  // Filter members based on search term
+  const filteredBySearch = searchTerm 
+    ? members.filter(member => {
+        return member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               (member.constituency && member.constituency.toLowerCase().includes(searchTerm.toLowerCase()));
+      })
+    : members;
 
-  // Filter members based on search term and selected party
-  const filteredMembers = members.filter(member => {
-    const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (member.constituency && member.constituency.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesParty = selectedParty ? member.party === selectedParty : true;
-    
-    return matchesSearch && matchesParty;
-  });
+  // Log for debugging
+  useEffect(() => {
+    console.log(`Displaying ${filteredBySearch.length} members after filtering`);
+    console.log('Current pagination:', pagination);
+  }, [filteredBySearch, pagination]);
 
   return (
     <div className="mb-6">
@@ -120,12 +129,12 @@ const MemberSearch = ({ onMemberSelect }) => {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-            {filteredMembers.length === 0 ? (
+            {filteredBySearch.length === 0 ? (
               <div className="col-span-3 text-center py-8">
                 <p className="text-gray-500">No members found matching your search criteria.</p>
               </div>
             ) : (
-              filteredMembers.slice(0, displayCount).map(member => (
+              filteredBySearch.slice(0, displayCount).map(member => (
                 <div
                   key={member.id}
                   className="p-4 border rounded-lg hover:border-blue-200 cursor-pointer"
@@ -160,7 +169,7 @@ const MemberSearch = ({ onMemberSelect }) => {
           </div>
           
           {/* Load More Button */}
-          {filteredMembers.length > displayCount && (
+          {filteredBySearch.length > displayCount && (
             <div className="text-center mt-6">
               <button 
                 onClick={() => setDisplayCount(prev => prev + 12)}
@@ -171,13 +180,13 @@ const MemberSearch = ({ onMemberSelect }) => {
             </div>
           )}
           
-          {/* Standard Pagination */}
+          {/* Standard Pagination - only show if we have more data to fetch */}
           {pagination && pagination.totalPages > 1 && (
             <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
               <button
                 onClick={goToPreviousPage}
                 disabled={pagination.page === 1}
-                className="px-4 py-2 border border-gray-300 text-sm leading-5 font-medium rounded-md text-gray-700 bg-white hover:text-gray-500 focus:outline-none focus:border-blue-300 focus:shadow-outline-blue active:bg-gray-100 active:text-gray-700 disabled:opacity-50"
+                className={`px-4 py-2 border border-gray-300 text-sm leading-5 font-medium rounded-md text-gray-700 bg-white hover:text-gray-500 focus:outline-none focus:border-blue-300 focus:shadow-outline-blue active:bg-gray-100 active:text-gray-700 disabled:opacity-50`}
               >
                 Previous
               </button>
@@ -191,7 +200,7 @@ const MemberSearch = ({ onMemberSelect }) => {
               <button
                 onClick={goToNextPage}
                 disabled={pagination.page >= pagination.totalPages}
-                className="px-4 py-2 border border-gray-300 text-sm leading-5 font-medium rounded-md text-gray-700 bg-white hover:text-gray-500 focus:outline-none focus:border-blue-300 focus:shadow-outline-blue active:bg-gray-100 active:text-gray-700 disabled:opacity-50"
+                className={`px-4 py-2 border border-gray-300 text-sm leading-5 font-medium rounded-md text-gray-700 bg-white hover:text-gray-500 focus:outline-none focus:border-blue-300 focus:shadow-outline-blue active:bg-gray-100 active:text-gray-700 disabled:opacity-50`}
               >
                 Next
               </button>

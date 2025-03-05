@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 function useMembers({ limit = 20, page = 1 } = {}) {
   const [members, setMembers] = useState([]);
+  const [allMembers, setAllMembers] = useState([]); // Store all fetched members for client-side filtering
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeFilters, setActiveFilters] = useState({});
@@ -21,14 +22,15 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       photoUrl = `https://openparliament.ca${photoUrl}`;
     }
 
-    // First log the complete raw data for debugging
-    console.log('Complete raw member data structure:', Object.keys(apiMember));
-
     // Extract party information using all possible paths
     let partyName = '';
 
-    // Try memberships structure - this is where most detailed info lives
-    if (apiMember.memberships && apiMember.memberships.length > 0) {
+    // Try to get party from current_party first (most reliable source)
+    if (apiMember.current_party && apiMember.current_party.short_name && apiMember.current_party.short_name.en) {
+      partyName = apiMember.current_party.short_name.en;
+    }
+    // Then try memberships structure
+    else if (apiMember.memberships && apiMember.memberships.length > 0) {
       for (const membership of apiMember.memberships) {
         if (membership.label && membership.label.en && membership.label.en.includes('MP for')) {
           const partyMatch = membership.label.en.match(/Conservative|Liberal|NDP|Green|Bloc/);
@@ -48,7 +50,7 @@ function useMembers({ limit = 20, page = 1 } = {}) {
         }
       }
     }
-
+    
     // Try political_memberships next
     if (!partyName && apiMember.political_memberships && apiMember.political_memberships.length > 0) {
       for (const membership of apiMember.political_memberships) {
@@ -74,13 +76,6 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       }
     }
 
-    // Try current_party
-    if (!partyName && apiMember.current_party) {
-      if (apiMember.current_party.short_name && apiMember.current_party.short_name.en) {
-        partyName = apiMember.current_party.short_name.en;
-      }
-    }
-
     // Try raw party field
     if (!partyName && apiMember.party) {
       if (typeof apiMember.party === 'string') {
@@ -93,8 +88,12 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     // Extract constituency information using all possible paths
     let constituencyName = '';
 
+    // Try directly from current_riding first
+    if (apiMember.current_riding && apiMember.current_riding.name && apiMember.current_riding.name.en) {
+      constituencyName = apiMember.current_riding.name.en;
+    }
     // Try from memberships
-    if (apiMember.memberships && apiMember.memberships.length > 0) {
+    else if (apiMember.memberships && apiMember.memberships.length > 0) {
       for (const membership of apiMember.memberships) {
         if (membership.label && membership.label.en && membership.label.en.includes('MP for')) {
           const ridingMatch = membership.label.en.match(/MP for (.+?)$/);
@@ -137,66 +136,34 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       }
     }
 
-    // Try other_info.constituency_offices
-    if (!constituencyName && apiMember.other_info && apiMember.other_info.constituency_offices) {
-      // Sometimes the constituency name is at the beginning of the office address
-      if (typeof apiMember.other_info.constituency_offices === 'string') {
-        const officeText = apiMember.other_info.constituency_offices;
-        const mainOffice = officeText.includes('Main office - ');
-        if (mainOffice) {
-          const locationMatch = officeText.match(/Main office - (.*?)(?:\d|\n)/);
-          if (locationMatch && locationMatch[1]) {
-            constituencyName = locationMatch[1].trim();
-          }
-        }
-      }
-    }
-
     // DIRECT CHECK FOR SPECIFIC MEMBERS
     if (apiMember.name === "Pat Kelly") {
       constituencyName = "Calgary Rocky Ridge";
-      console.log("*** HARDCODED RIDING FOR Pat Kelly: Calgary Rocky Ridge");
     }
     if (apiMember.name === "Earl Dreeshen") {
       constituencyName = "Red Deer—Mountain View";
       partyName = "Conservative";
-      console.log("*** HARDCODED DATA FOR Earl Dreeshen");
     }
-
-    // Log findings
-    console.log(`Final extracted data for ${apiMember.name}: Party="${partyName}", Constituency="${constituencyName}"`);
-
-    // Also check for "energy" or other buttons that might appear
-    const energyTag = apiMember.other_info?.wordcloud_id === 'energy';
-    console.log(`Member: ${apiMember.name}, Party: "${partyName}", Constituency: "${constituencyName}", Energy: ${energyTag}`);
 
     // Extract province
     let provinceCode = '';
   
-    // Check political_memberships first
-    if (apiMember.political_memberships && apiMember.political_memberships.length > 0) {
-      const membership = apiMember.political_memberships[0]; // Use the most recent membership
-      if (membership.riding && membership.riding.province) {
-        provinceCode = membership.riding.province;
-      }
+    // Check current_riding first
+    if (apiMember.current_riding && apiMember.current_riding.province) {
+      provinceCode = apiMember.current_riding.province;
     }
-  
     // If not found, try other locations
-    if (!provinceCode) {
-      if (typeof apiMember.province === 'string' && apiMember.province) {
-        provinceCode = apiMember.province;
-      } else if (apiMember.current_riding && apiMember.current_riding.province) {
-        provinceCode = apiMember.current_riding.province;
-      } else if (apiMember.riding && typeof apiMember.riding === 'object' && apiMember.riding.province) {
-        provinceCode = apiMember.riding.province;
-      }
+    else if (typeof apiMember.province === 'string' && apiMember.province) {
+      provinceCode = apiMember.province;
+    } else if (apiMember.riding && typeof apiMember.riding === 'object' && apiMember.riding.province) {
+      provinceCode = apiMember.riding.province;
     }
 
     // Extract contact info
     const email = apiMember.email || '';
     const phone = apiMember.voice || apiMember.phone || '';
 
-    // Extract constituency office details using multiple possible paths
+    // Extract constituency office details
     let constituencyOfficeAddress = '';
     let constituencyOfficePhone = '';
   
@@ -214,13 +181,12 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       constituencyOfficeAddress = apiMember.other_info.main_office;
     }
 
-    // Build a proper constituency office object
     let constituencyOffice = {
       address: constituencyOfficeAddress,
       phone: constituencyOfficePhone
     };
 
-    // Extract Twitter handle from multiple possible locations
+    // Extract Twitter handle
     let twitterHandle = '';
     if (apiMember.twitter) {
       twitterHandle = apiMember.twitter;
@@ -239,9 +205,6 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       }
     }
 
-    // Log what we found for debugging
-    console.log(`Member: ${apiMember.name}, Party: "${partyName}", Constituency: "${constituencyName}", Province: "${provinceCode}"`);
-  
     // Create a clean URL to send back to our API
     const cleanedUrl = apiMember.url || '';
 
@@ -264,27 +227,15 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       favorite_word: favoriteWord,
       wikipedia_id: apiMember.wikipedia_id || apiMember.other_info?.wikipedia_id || '',
       // Add the raw data for fields we might have missed
-      data: apiMember,
-      // For debug purposes only
-      debug: {
-        rawParty: apiMember.party,
-        rawConstituency: apiMember.constituency,
-        rawCurrentParty: apiMember.current_party,
-        rawCurrentRiding: apiMember.current_riding,
-        politicalMemberships: apiMember.political_memberships || [],
-        otherInfo: apiMember.other_info || {}
-      }
+      data: apiMember
     };
   };
 
-  const fetchMembers = useCallback(async (filters = {}) => {
+  const fetchMembers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
      
-      // Store active filters
-      setActiveFilters(filters);
-  
       // Use the API URL from .env
       const apiUrl = import.meta.env.VITE_API_URL || 'https://parliament-watch-api.fly.dev/api';
     
@@ -309,33 +260,24 @@ function useMembers({ limit = 20, page = 1 } = {}) {
   
       // Check if the data contains an 'objects' array
       const membersArray = data.objects || [];
-    
-      // APPLY CLIENT-SIDE FILTERING since the API filter isn't working
-      let filteredMembers = membersArray;
-      if (filters && filters.party) {
-        console.log('Applying client-side filter for party:', filters.party);
-        filteredMembers = membersArray.filter(member => {
-          const partyName = member.current_party?.short_name?.en;
-          console.log(`Checking ${member.name}, party: ${partyName}`);
-          return partyName === filters.party;
-        });
-        console.log(`Filtered from ${membersArray.length} to ${filteredMembers.length} members`);
-      }
   
       // Transform data
-      const formattedMembers = filteredMembers.map(transformMember);
+      const formattedMembers = membersArray.map(transformMember);
       console.log('Transformed members:', formattedMembers);
   
-      // Update members data
-      setMembers(formattedMembers);
+      // Store all members for client-side filtering
+      setAllMembers(formattedMembers);
+      
+      // Apply active filters (if any)
+      applyFilters(formattedMembers, activeFilters);
     
       // Update pagination if available
       if (data.pagination) {
         setPagination({
           page: Math.floor(data.pagination.offset / data.pagination.limit) + 1,
           limit: data.pagination.limit,
-          totalPages: Math.ceil((filters.party ? filteredMembers.length : data.pagination.count || membersArray.length) / data.pagination.limit) || 1,
-          totalMembers: filters.party ? filteredMembers.length : (data.pagination.count || membersArray.length)
+          totalPages: Math.ceil(data.pagination.count / data.pagination.limit) || 1,
+          totalMembers: data.pagination.count || membersArray.length
         });
       }
     } catch (err) {
@@ -344,24 +286,66 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, pagination.limit]);
+  }, [pagination.page, pagination.limit, activeFilters]);
+
+  // Apply client-side filtering
+  const applyFilters = useCallback((membersToFilter, filters) => {
+    if (!filters || Object.keys(filters).length === 0) {
+      setMembers(membersToFilter);
+      return;
+    }
+
+    console.log('Applying client-side filters:', filters);
+    let filteredMembers = [...membersToFilter];
+
+    // Filter by party
+    if (filters.party) {
+      console.log('Filtering by party:', filters.party);
+      filteredMembers = filteredMembers.filter(member => {
+        const memberParty = member.party;
+        const matches = memberParty === filters.party;
+        console.log(`Member: ${member.name}, Party: ${memberParty}, Matches: ${matches}`);
+        return matches;
+      });
+    }
+
+    console.log(`Filtered from ${membersToFilter.length} to ${filteredMembers.length} members`);
+    setMembers(filteredMembers);
+    
+    // Update pagination for filtered results
+    setPagination(prev => ({
+      ...prev,
+      totalPages: Math.ceil(filteredMembers.length / prev.limit) || 1,
+      totalMembers: filteredMembers.length
+    }));
+  }, []);
 
   // Initial data fetch
   useEffect(() => {
-    fetchMembers(activeFilters);
-  }, [fetchMembers, pagination.page, pagination.limit]);
+    fetchMembers();
+  }, [fetchMembers]);
 
   // Handle manual refresh with filters
   const refresh = useCallback((filters = {}) => {
+    console.log('Refresh called with filters:', filters);
+    
+    // Store the active filters
+    setActiveFilters(filters);
+    
     // Reset to page 1 when applying new filters
     setPagination(prev => ({
       ...prev,
       page: 1
     }));
-  
-    // Make sure this calls fetchMembers with the filters
-    fetchMembers(filters);
-  }, [fetchMembers]);
+    
+    // Apply filters to existing members data (for immediate response)
+    if (allMembers.length > 0) {
+      applyFilters(allMembers, filters);
+    } else {
+      // If we don't have any members yet, fetch them
+      fetchMembers();
+    }
+  }, [fetchMembers, allMembers, applyFilters]);
 
   const goToNextPage = useCallback(() => {
     if (pagination.page < pagination.totalPages) {
@@ -390,22 +374,54 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     }
   }, [pagination.totalPages]);
 
-  // fetchMemberDetails remains unchanged
+  // fetchMemberDetails
   const [memberDetails, setMemberDetails] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState(null);
 
   const fetchMemberDetails = useCallback(async (memberId) => {
-    // Existing implementation...
+    try {
+      setDetailsLoading(true);
+      setDetailsError(null);
+      
+      // Extract member name from URL if it's a full URL
+      const memberName = memberId.includes('/') 
+        ? memberId.split('/').filter(Boolean).pop() 
+        : memberId;
+      
+      console.log('Fetching details for member:', memberName);
+      
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://parliament-watch-api.fly.dev/api';
+      const response = await fetch(`${apiUrl}/members/${memberName}`);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Member details raw data:', data);
+      
+      // Transform the member data
+      const formattedMember = transformMember(data);
+      setMemberDetails(formattedMember);
+      return formattedMember;
+    } catch (err) {
+      setDetailsError(err.message || 'Failed to load member details. Please try again.');
+      console.error('Error fetching member details:', err);
+      return null;
+    } finally {
+      setDetailsLoading(false);
+    }
   }, []);
 
   return {
     members,
+    allMembers,
     loading,
     error,
     pagination,
-    refresh,             // Now supports filter parameters
-    fetchMembers,        // Now supports filter parameters
+    refresh,
+    fetchMembers,
     goToNextPage,
     goToPreviousPage,
     goToPage,
@@ -413,7 +429,7 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     detailsLoading,
     detailsError,
     fetchMemberDetails,
-    activeFilters         // Added to return active filters
+    activeFilters
   };
 }
 
