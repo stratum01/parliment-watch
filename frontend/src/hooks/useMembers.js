@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 
 function useMembers({ limit = 20, page = 1 } = {}) {
-  const [members, setMembers] = useState([]);
-  const [allMembers, setAllMembers] = useState([]); // Store all fetched members for client-side filtering
+  const [members, setMembers] = useState([]); // Filtered members for display
+  const [allMembers, setAllMembers] = useState([]); // Store all fetched members across all pages
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeFilters, setActiveFilters] = useState({});
@@ -10,7 +10,8 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     page,
     limit,
     totalPages: 0,
-    totalMembers: 0
+    totalMembers: 0,
+    hasMore: true // Track if there's more data to fetch
   });
 
   // Transform OpenParliament API data to our frontend format
@@ -231,16 +232,20 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     };
   };
 
-  const fetchMembers = useCallback(async () => {
+  const fetchMembers = useCallback(async (reset = false) => {
     try {
       setLoading(true);
       setError(null);
+      
+      // If reset is true, we're starting a new search (e.g., after changing filters)
+      // Otherwise, we're paginating/adding more
+      const currentPage = reset ? 1 : pagination.page;
      
       // Use the API URL from .env
       const apiUrl = import.meta.env.VITE_API_URL || 'https://parliament-watch-api.fly.dev/api';
     
       // Build query parameters for pagination
-      const offset = (pagination.page - 1) * pagination.limit;
+      const offset = (currentPage - 1) * pagination.limit;
     
       // Start with basic params
       let params = `format=json&limit=${pagination.limit}&offset=${offset}`;
@@ -265,42 +270,46 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       const formattedMembers = membersArray.map(transformMember);
       console.log('Transformed members:', formattedMembers);
   
-      // Store all members for client-side filtering
-      setAllMembers(formattedMembers);
+      // Update allMembers - append or replace depending on reset flag
+      setAllMembers(prev => {
+        if (reset) {
+          return formattedMembers; // Start fresh
+        } else {
+          // Combine existing and new members, avoid duplicates by ID
+          const existingIds = new Set(prev.map(m => m.id));
+          const uniqueNewMembers = formattedMembers.filter(m => !existingIds.has(m.id));
+          return [...prev, ...uniqueNewMembers];
+        }
+      });
       
-      // Apply active filters (if any)
-      applyFilters(formattedMembers, activeFilters);
-    
       // Update pagination if available
       if (data.pagination) {
-        // If we have filters active, we need to adjust pagination for client-side filtering
-        if (Object.keys(activeFilters).length > 0) {
-          // Keep the API pagination info but adjust for client-side filtering
-          setPagination(prev => ({
-            ...prev,
-            page: Math.floor(data.pagination.offset / data.pagination.limit) + 1,
-            limit: data.pagination.limit,
-            // Still keep track of total possible members from API for "Load More" functionality
-            totalPages: Math.ceil(data.pagination.count / data.pagination.limit) || 1,
-            totalMembers: data.pagination.count || membersArray.length
-          }));
-        } else {
-          // Normal pagination without filters
-          setPagination({
-            page: Math.floor(data.pagination.offset / data.pagination.limit) + 1,
-            limit: data.pagination.limit,
-            totalPages: Math.ceil(data.pagination.count / data.pagination.limit) || 1,
-            totalMembers: data.pagination.count || membersArray.length
-          });
-        }
+        const nextPage = currentPage + 1;
+        const totalPagesEstimate = Math.ceil(data.pagination.count / pagination.limit) || 1;
+        const hasMorePages = data.pagination.next_url !== null;
+        
+        setPagination({
+          page: nextPage, // Increment page for next fetch
+          limit: pagination.limit,
+          totalPages: totalPagesEstimate,
+          totalMembers: data.pagination.count || membersArray.length,
+          hasMore: hasMorePages
+        });
       }
     } catch (err) {
       setError(err.message || 'Failed to load members data. Please try again.');
       console.error('Error fetching members:', err);
     } finally {
       setLoading(false);
+      
+      // After loading, apply any active filters to the updated allMembers
+      setAllMembers(prev => {
+        // Using setTimeout to ensure state is updated before we try to filter
+        setTimeout(() => applyFilters(prev, activeFilters), 0);
+        return prev;
+      });
     }
-  }, [pagination.page, pagination.limit, activeFilters]);
+  }, [pagination.limit, pagination.page, activeFilters]);
 
   // Apply client-side filtering
   const applyFilters = useCallback((membersToFilter, filters) => {
@@ -325,20 +334,12 @@ function useMembers({ limit = 20, page = 1 } = {}) {
 
     console.log(`Filtered from ${membersToFilter.length} to ${filteredMembers.length} members`);
     setMembers(filteredMembers);
-    
-    // Don't completely override pagination when filtering, as we need to maintain
-    // the ability to fetch more data from the API if needed
-    setPagination(prev => ({
-      ...prev,
-      // Keep the existing totalPages from the API for "Load More" functionality
-      filteredCount: filteredMembers.length // Add a separate count for filtered results
-    }));
   }, []);
 
   // Initial data fetch
   useEffect(() => {
-    fetchMembers();
-  }, [fetchMembers]);
+    fetchMembers(true); // Reset on first load
+  }, []);
 
   // Handle manual refresh with filters
   const refresh = useCallback((filters = {}) => {
@@ -347,47 +348,50 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     // Store the active filters
     setActiveFilters(filters);
     
-    // Reset to page 1 when applying new filters
+    // Reset pagination and fetch from beginning
     setPagination(prev => ({
       ...prev,
       page: 1
     }));
     
-    // Apply filters to existing members data (for immediate response)
-    if (allMembers.length > 0) {
-      applyFilters(allMembers, filters);
+    // Fetch members from the beginning
+    fetchMembers(true);
+  }, [fetchMembers]);
+
+  // Load more function that works with filtered data
+  const loadMore = useCallback(() => {
+    // If we have active filters, we need to check if loading more would help
+    if (Object.keys(activeFilters).length > 0) {
+      // First check if we have loaded all data
+      if (!pagination.hasMore) {
+        console.log('No more data to load from API');
+        return;
+      }
+      
+      // If we have active filters and need more data, fetch the next page
+      console.log('Loading more data with active filters');
+      fetchMembers(false); // Don't reset, just append
     } else {
-      // If we don't have any members yet, fetch them
-      fetchMembers();
+      // No filters, just load next page normally
+      fetchMembers(false);
     }
-  }, [fetchMembers, allMembers, applyFilters]);
+  }, [fetchMembers, activeFilters, pagination.hasMore]);
 
   const goToNextPage = useCallback(() => {
-    if (pagination.page < pagination.totalPages) {
-      setPagination(prev => ({
-        ...prev,
-        page: prev.page + 1,
-      }));
-    }
-  }, [pagination.page, pagination.totalPages]);
+    loadMore();
+  }, [loadMore]);
 
   const goToPreviousPage = useCallback(() => {
-    if (pagination.page > 1) {
-      setPagination(prev => ({
-        ...prev,
-        page: prev.page - 1,
-      }));
-    }
-  }, [pagination.page]);
+    // For simplicity, we don't implement going back in this approach
+    // since we're accumulating all data
+    console.log('Previous page not implemented in cumulative mode');
+  }, []);
 
   const goToPage = useCallback((page) => {
-    if (page >= 1 && page <= pagination.totalPages) {
-      setPagination(prev => ({
-        ...prev,
-        page,
-      }));
-    }
-  }, [pagination.totalPages]);
+    // For simplicity, we don't implement direct page navigation
+    // since we're accumulating all data
+    console.log('Direct page navigation not implemented in cumulative mode');
+  }, []);
 
   // fetchMemberDetails
   const [memberDetails, setMemberDetails] = useState(null);
@@ -437,6 +441,7 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     pagination,
     refresh,
     fetchMembers,
+    loadMore,
     goToNextPage,
     goToPreviousPage,
     goToPage,

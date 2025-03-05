@@ -15,10 +15,8 @@ const MemberSearch = ({ onMemberSelect }) => {
     fetchMemberDetails,
     detailsLoading,
     pagination,
-    goToNextPage,
-    goToPreviousPage,
-    refresh,
-    fetchMembers  // Added fetchMembers for loading more data
+    loadMore,
+    refresh
   } = useMembers();
 
   // Handler for party filter button clicks
@@ -71,7 +69,21 @@ const MemberSearch = ({ onMemberSelect }) => {
   useEffect(() => {
     console.log(`Displaying ${filteredBySearch.length} members after filtering`);
     console.log('Current pagination:', pagination);
-  }, [filteredBySearch, pagination]);
+    console.log('All members count:', allMembers.length);
+    console.log('Filtered members count:', members.length);
+  }, [filteredBySearch, pagination, allMembers.length, members.length]);
+
+  // Function to handle "Load More" button click
+  const handleLoadMore = () => {
+    // If we're showing fewer members than we have filtered, just show more
+    if (displayCount < filteredBySearch.length) {
+      setDisplayCount(prevCount => prevCount + 12);
+    } 
+    // Otherwise, fetch more from the API
+    else if (pagination.hasMore) {
+      loadMore();
+    }
+  };
 
   return (
     <div className="mb-6">
@@ -123,7 +135,7 @@ const MemberSearch = ({ onMemberSelect }) => {
         </div>
       )}
       
-      {loading ? (
+      {loading && filteredBySearch.length === 0 ? (
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
@@ -169,52 +181,34 @@ const MemberSearch = ({ onMemberSelect }) => {
             )}
           </div>
           
-          {/* Load More Button - with additional check for pagination.totalMembers */}
-          {(filteredBySearch.length > displayCount || pagination.totalMembers > filteredBySearch.length) && (
+          {/* Load More Button - with refined logic */}
+          {(displayCount < filteredBySearch.length || pagination.hasMore) && (
             <div className="text-center mt-6">
               <button 
-                onClick={() => {
-                  // If we're showing all currently available members, fetch more from API
-                  if (displayCount >= filteredBySearch.length && pagination.page < pagination.totalPages) {
-                    goToNextPage(); // Fetch next page of data
-                  } else {
-                    // Otherwise just show more of what we already have
-                    setDisplayCount(prev => prev + 12);
-                  }
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                onClick={handleLoadMore}
+                disabled={loading && filteredBySearch.length > 0}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
               >
-                Load More Members
+                {loading && filteredBySearch.length > 0 ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Loading...
+                  </span>
+                ) : (
+                  'Load More Members'
+                )}
               </button>
             </div>
           )}
           
-          {/* Standard Pagination - only show if we have more data to fetch */}
-          {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
-              <button
-                onClick={goToPreviousPage}
-                disabled={pagination.page === 1}
-                className={`px-4 py-2 border border-gray-300 text-sm leading-5 font-medium rounded-md text-gray-700 bg-white hover:text-gray-500 focus:outline-none focus:border-blue-300 focus:shadow-outline-blue active:bg-gray-100 active:text-gray-700 disabled:opacity-50`}
-              >
-                Previous
-              </button>
-              
-              <div className="text-sm text-gray-700">
-                <span>Page {pagination.page} of {pagination.totalPages}</span>
-                <span className="mx-2">•</span>
-                <span>Showing {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.totalMembers)} of {pagination.totalMembers} members</span>
-              </div>
-              
-              <button
-                onClick={goToNextPage}
-                disabled={pagination.page >= pagination.totalPages}
-                className={`px-4 py-2 border border-gray-300 text-sm leading-5 font-medium rounded-md text-gray-700 bg-white hover:text-gray-500 focus:outline-none focus:border-blue-300 focus:shadow-outline-blue active:bg-gray-100 active:text-gray-700 disabled:opacity-50`}
-              >
-                Next
-              </button>
-            </div>
-          )}
+          {/* Display member count information */}
+          <div className="text-center mt-4 text-sm text-gray-600">
+            Showing {Math.min(displayCount, filteredBySearch.length)} of {filteredBySearch.length} filtered members
+            {pagination.hasMore && ' (more available)'}
+          </div>
         </>
       )}
       
