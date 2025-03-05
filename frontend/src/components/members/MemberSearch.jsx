@@ -20,11 +20,13 @@ const MemberSearch = ({ onMemberSelect }) => {
   } = useMembers();
 
   const handlePartyFilter = (party) => {
+    console.log('Party filter clicked:', party); // Debug log
     setSelectedParty(party);
     setDisplayCount(12); // Reset display count when changing filters
   
-    // Use the refresh function with party filter
+    // Call refresh with the party filter
     refresh({ party });
+    console.log('refresh :', party); // Debug log
   }
 
   // Enhanced handler for when a member is selected
