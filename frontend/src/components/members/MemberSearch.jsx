@@ -15,8 +15,28 @@ const MemberSearch = ({ onMemberSelect }) => {
     detailsLoading,
     pagination,
     goToNextPage,
-    goToPreviousPage
+    goToPreviousPage,
+    refresh  // Add this
   } = useMembers();
+
+  // Add this after your other state variables and before the useEffect
+  const handlePartyFilter = (party) => {
+    setSelectedParty(party);
+    setDisplayCount(12); // Reset display count when changing filters
+  
+    // Use the refresh function with party filter
+    refresh({ party });
+  
+  // If you have access to refresh or fetchMembers with filtering
+  // You would call it here - if your useMembers hook has been updated
+  // to support filtering by party as suggested
+  
+  // Option 1: If useMembers exposes a refresh function with filter parameters
+  // refresh({ party });
+  
+  // Option 2: For now, we're still client-side filtering, but at least
+  // we're resetting display count and updating the visual state
+  }
 
   // Enhanced handler for when a member is selected
   const handleMemberSelect = async (member) => {
@@ -65,7 +85,7 @@ const MemberSearch = ({ onMemberSelect }) => {
         {/* Party Filter Buttons */}
         <div className="flex flex-wrap gap-2 mt-4">
           <button
-            onClick={() => setSelectedParty('')}
+            onClick={() => handlePartyFilter('')}
             className={`px-3 py-1 text-sm rounded-full ${
               selectedParty === '' 
                 ? 'bg-blue-600 text-white' 
@@ -74,11 +94,11 @@ const MemberSearch = ({ onMemberSelect }) => {
           >
             All Parties
           </button>
-          
+  
           {parties.map(party => (
             <button
               key={party}
-              onClick={() => setSelectedParty(party)}
+              onClick={() => handlePartyFilter(party)}
               className={`px-3 py-1 text-sm rounded-full ${
                 selectedParty === party
                   ? party === 'Conservative' ? 'bg-blue-600 text-white' :
