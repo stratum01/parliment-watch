@@ -315,7 +315,8 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     
       // Add party filter if provided
       if (filters && filters.party) {
-        // Use the correct parameter format for filtering by party
+        // Add a log to verify this is being called
+        console.log('Adding party filter:', filters.party);
         params += `&current_party.short_name.en=${encodeURIComponent(filters.party)}`;
       }
     
@@ -364,20 +365,17 @@ function useMembers({ limit = 20, page = 1 } = {}) {
   }, [fetchMembers, pagination.page, pagination.limit]);
 
   // Handle manual refresh with filters
-  const refresh = (filters = {}) => {
+  const refresh = useCallback((filters = {}) => {
     // Reset to page 1 when applying new filters
     setPagination(prev => ({
       ...prev,
       page: 1
     }));
-    
-    // Fetch with the new filters
-    fetchMembers(filters);
-  };
-
-  // Handle pagination functions (goToNextPage, goToPreviousPage, goToPage)
-  // These remain the same but will now use activeFilters when fetching
   
+    // Make sure this calls fetchMembers with the filters
+    fetchMembers(filters);
+  }, [fetchMembers]);
+
   const goToNextPage = useCallback(() => {
     if (pagination.page < pagination.totalPages) {
       setPagination(prev => ({
