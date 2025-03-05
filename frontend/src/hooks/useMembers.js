@@ -90,25 +90,6 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       }
     }
 
-    // **DIRECT DEBUG CHECK FOR PAT KELLY**
-    if (apiMember.name === "Pat Kelly" || apiMember.name === "Earl Dreeshen") {
-      console.log("SPECIAL DEBUG FOR " + apiMember.name);
-      console.log("Memberships:", JSON.stringify(apiMember.memberships));
-      console.log("Political Memberships:", JSON.stringify(apiMember.political_memberships));
-  
-      // Look through the label fields
-      if (apiMember.political_memberships) {
-        for (const m of apiMember.political_memberships) {
-          console.log("- Label:", m.label);
-      
-          if (m.label && typeof m.label === 'string' && m.label.includes('Conservative MP for')) {
-            partyName = 'Conservative';
-            console.log("*** FOUND PARTY IN LABEL: Conservative");
-          }
-        }
-      }
-    }
-
     // Extract constituency information using all possible paths
     let constituencyName = '';
 
@@ -300,7 +281,7 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     try {
       setLoading(true);
       setError(null);
-    
+     
       // Store active filters
       setActiveFilters(filters);
   
@@ -313,13 +294,7 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       // Start with basic params
       let params = `format=json&limit=${pagination.limit}&offset=${offset}`;
     
-      // Add party filter if provided
-      if (filters && filters.party) {
-        // Add a log to verify this is being called
-        console.log('Adding party filter:', filters.party);
-        params += `&current_party.short_name.en=${encodeURIComponent(filters.party)}`;
-      }
-    
+      // Log the URL we're fetching
       const url = `${apiUrl}/members?${params}`;
       console.log('Fetching members with URL:', url);
     
@@ -334,9 +309,21 @@ function useMembers({ limit = 20, page = 1 } = {}) {
   
       // Check if the data contains an 'objects' array
       const membersArray = data.objects || [];
+    
+      // APPLY CLIENT-SIDE FILTERING since the API filter isn't working
+      let filteredMembers = membersArray;
+      if (filters && filters.party) {
+        console.log('Applying client-side filter for party:', filters.party);
+        filteredMembers = membersArray.filter(member => {
+          const partyName = member.current_party?.short_name?.en;
+          console.log(`Checking ${member.name}, party: ${partyName}`);
+          return partyName === filters.party;
+        });
+        console.log(`Filtered from ${membersArray.length} to ${filteredMembers.length} members`);
+      }
   
       // Transform data
-      const formattedMembers = membersArray.map(transformMember);
+      const formattedMembers = filteredMembers.map(transformMember);
       console.log('Transformed members:', formattedMembers);
   
       // Update members data
@@ -347,8 +334,8 @@ function useMembers({ limit = 20, page = 1 } = {}) {
         setPagination({
           page: Math.floor(data.pagination.offset / data.pagination.limit) + 1,
           limit: data.pagination.limit,
-          totalPages: Math.ceil(data.pagination.count || membersArray.length / data.pagination.limit) || 1,
-          totalMembers: data.pagination.count || membersArray.length
+          totalPages: Math.ceil((filters.party ? filteredMembers.length : data.pagination.count || membersArray.length) / data.pagination.limit) || 1,
+          totalMembers: filters.party ? filteredMembers.length : (data.pagination.count || membersArray.length)
         });
       }
     } catch (err) {
