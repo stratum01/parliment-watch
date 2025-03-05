@@ -18,7 +18,6 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     // Existing transformation code...
   };
 
-  // Modified fetchMembers to accept filters
   const fetchMembers = useCallback(async (filters = {}) => {
     try {
       setLoading(true);
@@ -37,15 +36,9 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       let params = `format=json&limit=${pagination.limit}&offset=${offset}`;
     
       // Add party filter if provided
-      if (filters.party) {
-        // The API seems to expect a 'current_party.short_name.en' filter
-        // But this might not be directly supported in the URL structure
-      
-        // First try our proxy API if it supports party filtering
-        params += `&party=${encodeURIComponent(filters.party)}`;
-      
-        // If your proxy API doesn't support this, you might need to 
-        // fetch all and filter client-side, or implement a server-side filter
+      if (filters && filters.party) {
+        // Use the correct parameter format for filtering by party
+        params += `&current_party.short_name.en=${encodeURIComponent(filters.party)}`;
       }
     
       const url = `${apiUrl}/members?${params}`;
@@ -63,20 +56,8 @@ function useMembers({ limit = 20, page = 1 } = {}) {
       // Check if the data contains an 'objects' array
       const membersArray = data.objects || [];
   
-      // If API-level filtering didn't work, we could filter client-side as a fallback
-      let filteredMembers = membersArray;
-      if (filters.party && !url.includes('&party=')) {
-        filteredMembers = membersArray.filter(member => {
-          // Check nested structure based on API response
-          const partyName = member.current_party?.short_name?.en || 
-                            member.party?.short_name?.en ||
-                            '';
-          return partyName === filters.party;
-        });
-      }
-  
       // Transform data
-      const formattedMembers = filteredMembers.map(transformMember);
+      const formattedMembers = membersArray.map(transformMember);
       console.log('Transformed members:', formattedMembers);
   
       // Update members data
@@ -87,8 +68,8 @@ function useMembers({ limit = 20, page = 1 } = {}) {
         setPagination({
           page: Math.floor(data.pagination.offset / data.pagination.limit) + 1,
           limit: data.pagination.limit,
-          totalPages: Math.ceil(data.pagination.count || filteredMembers.length / data.pagination.limit) || 1,
-          totalMembers: data.pagination.count || filteredMembers.length
+          totalPages: Math.ceil(data.pagination.count || membersArray.length / data.pagination.limit) || 1,
+          totalMembers: data.pagination.count || membersArray.length
         });
       }
     } catch (err) {
