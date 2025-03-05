@@ -19,23 +19,12 @@ const MemberSearch = ({ onMemberSelect }) => {
     refresh  // Add this
   } = useMembers();
 
-  // Add this after your other state variables and before the useEffect
   const handlePartyFilter = (party) => {
     setSelectedParty(party);
     setDisplayCount(12); // Reset display count when changing filters
   
     // Use the refresh function with party filter
     refresh({ party });
-  
-  // If you have access to refresh or fetchMembers with filtering
-  // You would call it here - if your useMembers hook has been updated
-  // to support filtering by party as suggested
-  
-  // Option 1: If useMembers exposes a refresh function with filter parameters
-  // refresh({ party });
-  
-  // Option 2: For now, we're still client-side filtering, but at least
-  // we're resetting display count and updating the visual state
   }
 
   // Enhanced handler for when a member is selected
@@ -181,7 +170,7 @@ const MemberSearch = ({ onMemberSelect }) => {
           )}
           
           {/* Standard Pagination */}
-          {pagination && pagination.totalPages > 1 && searchTerm === '' && !selectedParty && (
+          {pagination && pagination.totalPages > 1 && (
             <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
               <button
                 onClick={goToPreviousPage}
