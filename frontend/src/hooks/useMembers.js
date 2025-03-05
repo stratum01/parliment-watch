@@ -273,12 +273,26 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     
       // Update pagination if available
       if (data.pagination) {
-        setPagination({
-          page: Math.floor(data.pagination.offset / data.pagination.limit) + 1,
-          limit: data.pagination.limit,
-          totalPages: Math.ceil(data.pagination.count / data.pagination.limit) || 1,
-          totalMembers: data.pagination.count || membersArray.length
-        });
+        // If we have filters active, we need to adjust pagination for client-side filtering
+        if (Object.keys(activeFilters).length > 0) {
+          // Keep the API pagination info but adjust for client-side filtering
+          setPagination(prev => ({
+            ...prev,
+            page: Math.floor(data.pagination.offset / data.pagination.limit) + 1,
+            limit: data.pagination.limit,
+            // Still keep track of total possible members from API for "Load More" functionality
+            totalPages: Math.ceil(data.pagination.count / data.pagination.limit) || 1,
+            totalMembers: data.pagination.count || membersArray.length
+          }));
+        } else {
+          // Normal pagination without filters
+          setPagination({
+            page: Math.floor(data.pagination.offset / data.pagination.limit) + 1,
+            limit: data.pagination.limit,
+            totalPages: Math.ceil(data.pagination.count / data.pagination.limit) || 1,
+            totalMembers: data.pagination.count || membersArray.length
+          });
+        }
       }
     } catch (err) {
       setError(err.message || 'Failed to load members data. Please try again.');
@@ -312,11 +326,12 @@ function useMembers({ limit = 20, page = 1 } = {}) {
     console.log(`Filtered from ${membersToFilter.length} to ${filteredMembers.length} members`);
     setMembers(filteredMembers);
     
-    // Update pagination for filtered results
+    // Don't completely override pagination when filtering, as we need to maintain
+    // the ability to fetch more data from the API if needed
     setPagination(prev => ({
       ...prev,
-      totalPages: Math.ceil(filteredMembers.length / prev.limit) || 1,
-      totalMembers: filteredMembers.length
+      // Keep the existing totalPages from the API for "Load More" functionality
+      filteredCount: filteredMembers.length // Add a separate count for filtered results
     }));
   }, []);
 

@@ -17,7 +17,8 @@ const MemberSearch = ({ onMemberSelect }) => {
     pagination,
     goToNextPage,
     goToPreviousPage,
-    refresh  // Add this
+    refresh,
+    fetchMembers  // Added fetchMembers for loading more data
   } = useMembers();
 
   // Handler for party filter button clicks
@@ -168,11 +169,19 @@ const MemberSearch = ({ onMemberSelect }) => {
             )}
           </div>
           
-          {/* Load More Button */}
-          {filteredBySearch.length > displayCount && (
+          {/* Load More Button - with additional check for pagination.totalMembers */}
+          {(filteredBySearch.length > displayCount || pagination.totalMembers > filteredBySearch.length) && (
             <div className="text-center mt-6">
               <button 
-                onClick={() => setDisplayCount(prev => prev + 12)}
+                onClick={() => {
+                  // If we're showing all currently available members, fetch more from API
+                  if (displayCount >= filteredBySearch.length && pagination.page < pagination.totalPages) {
+                    goToNextPage(); // Fetch next page of data
+                  } else {
+                    // Otherwise just show more of what we already have
+                    setDisplayCount(prev => prev + 12);
+                  }
+                }}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
                 Load More Members
